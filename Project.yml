@@ -1,0 +1,41 @@
+name: VeloChat
+options:
+  bundleIdPrefix: com.velo
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+
+packages:
+  XMTPiOS:
+    url: https://github.com/xmtp/xmtp-ios
+    exactVersion: 4.9.0
+
+targets:
+  VeloChat:
+    type: application
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - path: VeloChat
+    dependencies:
+      - package: XMTPiOS
+        product: XMTPiOS
+    info:
+      path: VeloChat/Info.plist
+      properties:
+        UILaunchScreen: {}
+        CFBundleDisplayName: VeloChat
+        NSCameraUsageDescription: "需要使用相机扫描二维码以添加联系人"
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+    entitlements:
+      path: VeloChat/VeloChat.entitlements
+      properties:
+        aps-environment: development
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.velo.chat
+        TARGETED_DEVICE_FAMILY: "1,2"
