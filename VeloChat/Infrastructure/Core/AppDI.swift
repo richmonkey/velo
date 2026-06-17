@@ -9,6 +9,7 @@ final class AppDI {
     let fetchMessagesUseCase: FetchMessagesUseCase
     let sendMessageUseCase: SendMessageUseCase
     let streamMessagesUseCase: StreamMessagesUseCase
+    let streamAllMessagesUseCase: StreamAllMessagesUseCase
     let pushNotificationManager: PushNotificationManaging
     let setupPushNotificationsUseCase: SetupPushNotificationsUseCase
     let syncPushSubscriptionsUseCase: SyncPushSubscriptionsUseCase
@@ -29,6 +30,7 @@ final class AppDI {
         fetchMessagesUseCase = DefaultFetchMessagesUseCase(repository: chatRepository)
         sendMessageUseCase = DefaultSendMessageUseCase(repository: chatRepository)
         streamMessagesUseCase = DefaultStreamMessagesUseCase(repository: chatRepository)
+        streamAllMessagesUseCase = DefaultStreamAllMessagesUseCase(repository: chatRepository)
 
         let pushManager = PushNotificationManager()
         pushManager.configure(pushServerHost: Self.pushServerHost)
@@ -48,7 +50,8 @@ final class AppDI {
         HomeViewModel(
             fetchConversations: fetchConversationsUseCase,
             setupPushNotifications: setupPushNotificationsUseCase,
-            syncPushSubscriptions: syncPushSubscriptionsUseCase
+            syncPushSubscriptions: syncPushSubscriptionsUseCase,
+            streamAllMessages: streamAllMessagesUseCase
         )
     }
 

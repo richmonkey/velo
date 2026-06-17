@@ -6,6 +6,8 @@ options:
   createIntermediateGroups: true
 settings:
   base:
+    DEVELOPMENT_TEAM: Z53L5682S3
+    CODE_SIGN_STYLE: Automatic 
     SWIFT_VERSION: "5.9"
 
 packages:
