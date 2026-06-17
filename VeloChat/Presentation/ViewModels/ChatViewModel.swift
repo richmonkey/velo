@@ -21,6 +21,7 @@ final class ChatViewModel: ObservableObject {
     private let fetchMessages: FetchMessagesUseCase
     private let sendMessage: SendMessageUseCase
     private let sendImageMessage: SendImageMessageUseCase
+    private let sendVoiceMessage: SendVoiceMessageUseCase
     private let streamMessages: StreamMessagesUseCase
     private let unreadCountStore: UnreadCountRepositoryProtocol
     private let noteRepository: ConversationNoteRepositoryProtocol
@@ -35,6 +36,7 @@ final class ChatViewModel: ObservableObject {
         fetchMessages: FetchMessagesUseCase,
         sendMessage: SendMessageUseCase,
         sendImageMessage: SendImageMessageUseCase,
+        sendVoiceMessage: SendVoiceMessageUseCase,
         streamMessages: StreamMessagesUseCase,
         unreadCountStore: UnreadCountRepositoryProtocol,
         noteRepository: ConversationNoteRepositoryProtocol,
@@ -48,6 +50,7 @@ final class ChatViewModel: ObservableObject {
         self.fetchMessages = fetchMessages
         self.sendMessage = sendMessage
         self.sendImageMessage = sendImageMessage
+        self.sendVoiceMessage = sendVoiceMessage
         self.streamMessages = streamMessages
         self.unreadCountStore = unreadCountStore
         self.noteRepository = noteRepository
@@ -112,6 +115,19 @@ final class ChatViewModel: ObservableObject {
             defer { isSending = false }
             do {
                 let message = try await sendImageMessage.execute(conversationId: conversationId, imageData: data, filename: filename, mimeType: mimeType)
+                appendIfNeeded(message)
+            } catch {
+                viewState = .error(error.localizedDescription)
+            }
+        }
+    }
+
+    func sendVoice(data: Data, filename: String, mimeType: String, duration: TimeInterval) {
+        isSending = true
+        Task {
+            defer { isSending = false }
+            do {
+                let message = try await sendVoiceMessage.execute(conversationId: conversationId, audioData: data, filename: filename, mimeType: mimeType, duration: duration)
                 appendIfNeeded(message)
             } catch {
                 viewState = .error(error.localizedDescription)

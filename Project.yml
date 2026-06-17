@@ -31,6 +31,7 @@ targets:
         UILaunchScreen: {}
         CFBundleDisplayName: VeloChat
         NSCameraUsageDescription: "需要使用相机扫描二维码以添加联系人"
+        NSMicrophoneUsageDescription: "需要使用麦克风录制语音消息"
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
     entitlements:

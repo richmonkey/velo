@@ -1,4 +1,5 @@
 import Foundation
+import AVFoundation
 import XMTPiOS
 
 enum ConversationKindInfo {
@@ -39,6 +40,8 @@ struct ChatMessageInfo {
     let senderInboxId: String
     let nicknameUpdate: NicknameUpdateInfo?
     let imageData: Data?
+    let audioData: Data?
+    let audioDuration: TimeInterval?
     let sentAt: Date
 }
 
@@ -62,6 +65,7 @@ protocol XMTPConversationManaging {
     func fetchMessages(conversationId: String) async throws -> [ChatMessageInfo]
     func sendMessage(conversationId: String, text: String) async throws -> ChatMessageInfo
     func sendImage(conversationId: String, imageData: Data, filename: String, mimeType: String) async throws -> ChatMessageInfo
+    func sendVoiceMessage(conversationId: String, audioData: Data, filename: String, mimeType: String, duration: TimeInterval) async throws -> ChatMessageInfo
     func streamMessages(conversationId: String) -> AsyncThrowingStream<ChatMessageInfo, Error>
     func streamAllMessages() -> AsyncThrowingStream<String, Error>
     func createGroup(name: String, peerInboxIds: [String]) async throws -> ConversationSummaryInfo
@@ -120,7 +124,7 @@ final class XMTPConversationManager: XMTPConversationManaging {
             throw ConversationManagerError.conversationNotFound
         }
         let messageId = try await conversation.send(text: text)
-        return ChatMessageInfo(id: messageId, text: text, isFromMe: true, isSystemNotice: false, senderInboxId: client.inboxID, nicknameUpdate: nil, imageData: nil, sentAt: Date())
+        return ChatMessageInfo(id: messageId, text: text, isFromMe: true, isSystemNotice: false, senderInboxId: client.inboxID, nicknameUpdate: nil, imageData: nil, audioData: nil, audioDuration: nil, sentAt: Date())
     }
 
     func sendImage(conversationId: String, imageData: Data, filename: String, mimeType: String) async throws -> ChatMessageInfo {
@@ -138,6 +142,29 @@ final class XMTPConversationManager: XMTPConversationManaging {
             senderInboxId: client.inboxID,
             nicknameUpdate: nil,
             imageData: imageData,
+            audioData: nil,
+            audioDuration: nil,
+            sentAt: Date()
+        )
+    }
+
+    func sendVoiceMessage(conversationId: String, audioData: Data, filename: String, mimeType: String, duration: TimeInterval) async throws -> ChatMessageInfo {
+        let client = try await clientManager.currentClient()
+        guard let conversation = try await client.conversations.findConversation(conversationId: conversationId) else {
+            throw ConversationManagerError.conversationNotFound
+        }
+        let attachment = Attachment(filename: filename, mimeType: mimeType, data: audioData)
+        let messageId = try await conversation.send(content: attachment, options: SendOptions(contentType: ContentTypeAttachment))
+        return ChatMessageInfo(
+            id: messageId,
+            text: "",
+            isFromMe: true,
+            isSystemNotice: false,
+            senderInboxId: client.inboxID,
+            nicknameUpdate: nil,
+            imageData: nil,
+            audioData: audioData,
+            audioDuration: duration,
             sentAt: Date()
         )
     }
@@ -282,6 +309,8 @@ final class XMTPConversationManager: XMTPConversationManaging {
                 senderInboxId: message.senderInboxId,
                 nicknameUpdate: nil,
                 imageData: nil,
+                audioData: nil,
+                audioDuration: nil,
                 sentAt: message.sentAt
             )
         }
@@ -300,12 +329,14 @@ final class XMTPConversationManager: XMTPConversationManaging {
                 senderInboxId: senderId,
                 nicknameUpdate: NicknameUpdateInfo(inboxId: senderId, nickname: nickname),
                 imageData: nil,
+                audioData: nil,
+                audioDuration: nil,
                 sentAt: message.sentAt
             )
         }
 
         if contentType == ContentTypeAttachment {
-            guard let attachment: Attachment = try? message.content(), attachment.mimeType.hasPrefix("image/") else {
+            guard let attachment: Attachment = try? message.content() else {
                 return ChatMessageInfo(
                     id: message.id,
                     text: (try? message.body) ?? "",
@@ -314,6 +345,37 @@ final class XMTPConversationManager: XMTPConversationManaging {
                     senderInboxId: message.senderInboxId,
                     nicknameUpdate: nil,
                     imageData: nil,
+                    audioData: nil,
+                    audioDuration: nil,
+                    sentAt: message.sentAt
+                )
+            }
+            if attachment.mimeType.hasPrefix("audio/") {
+                let duration = (try? AVAudioPlayer(data: attachment.data))?.duration
+                return ChatMessageInfo(
+                    id: message.id,
+                    text: "",
+                    isFromMe: message.senderInboxId == currentInboxId,
+                    isSystemNotice: false,
+                    senderInboxId: message.senderInboxId,
+                    nicknameUpdate: nil,
+                    imageData: nil,
+                    audioData: attachment.data,
+                    audioDuration: duration,
+                    sentAt: message.sentAt
+                )
+            }
+            guard attachment.mimeType.hasPrefix("image/") else {
+                return ChatMessageInfo(
+                    id: message.id,
+                    text: (try? message.body) ?? "",
+                    isFromMe: message.senderInboxId == currentInboxId,
+                    isSystemNotice: false,
+                    senderInboxId: message.senderInboxId,
+                    nicknameUpdate: nil,
+                    imageData: nil,
+                    audioData: nil,
+                    audioDuration: nil,
                     sentAt: message.sentAt
                 )
             }
@@ -325,6 +387,8 @@ final class XMTPConversationManager: XMTPConversationManaging {
                 senderInboxId: message.senderInboxId,
                 nicknameUpdate: nil,
                 imageData: attachment.data,
+                audioData: nil,
+                audioDuration: nil,
                 sentAt: message.sentAt
             )
         }
@@ -337,6 +401,8 @@ final class XMTPConversationManager: XMTPConversationManaging {
             senderInboxId: message.senderInboxId,
             nicknameUpdate: nil,
             imageData: nil,
+            audioData: nil,
+            audioDuration: nil,
             sentAt: message.sentAt
         )
     }
@@ -374,8 +440,9 @@ final class XMTPConversationManager: XMTPConversationManaging {
     private func summary(for conversation: Conversation) async throws -> ConversationSummaryInfo {
         let lastMessage = try? await conversation.lastMessage()
         let preview: String?
-        if let lastMessage, (try? lastMessage.encodedContent.type) == ContentTypeAttachment {
-            preview = "[图片]"
+        if let lastMessage, (try? lastMessage.encodedContent.type) == ContentTypeAttachment,
+           let attachment: Attachment = try? lastMessage.content() {
+            preview = attachment.mimeType.hasPrefix("audio/") ? "[语音]" : "[图片]"
         } else {
             preview = try? lastMessage?.body
         }

@@ -1,5 +1,6 @@
 import SwiftUI
 import PhotosUI
+import AVFoundation
 
 struct ChatView: View {
     @StateObject private var viewModel: ChatViewModel
@@ -7,6 +8,7 @@ struct ChatView: View {
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var showPhotoPicker = false
     @State private var showCamera = false
+    @StateObject private var audioRecorder = AudioRecorder()
 
     private var isCameraAvailable: Bool {
         UIImagePickerController.isSourceTypeAvailable(.camera)
@@ -35,6 +37,11 @@ struct ChatView: View {
         }
         .onDisappear {
             viewModel.stopStreaming()
+        }
+        .onAppear {
+            audioRecorder.onAutoStop = { url, duration in
+                sendRecording(url: url, duration: duration)
+            }
         }
         .onChange(of: selectedPhotoItem) { item in
             guard let item else { return }
@@ -108,31 +115,58 @@ struct ChatView: View {
         }
     }
 
+    @ViewBuilder
     private var inputBar: some View {
-        HStack {
-            Menu {
-                Button {
-                    showPhotoPicker = true
-                } label: {
-                    Label("从相册选择", systemImage: "photo")
-                }
-                if isCameraAvailable {
+        if audioRecorder.isRecording {
+            recordingBar
+        } else {
+            HStack {
+                Menu {
                     Button {
-                        showCamera = true
+                        showPhotoPicker = true
                     } label: {
-                        Label("拍照", systemImage: "camera")
+                        Label("从相册选择", systemImage: "photo")
                     }
+                    if isCameraAvailable {
+                        Button {
+                            showCamera = true
+                        } label: {
+                            Label("拍照", systemImage: "camera")
+                        }
+                    }
+                } label: {
+                    Image(systemName: "plus.circle")
                 }
-            } label: {
-                Image(systemName: "plus.circle")
-            }
-            .disabled(viewModel.isSending)
-            TextField("输入消息", text: $draft)
-                .textFieldStyle(.roundedBorder)
                 .disabled(viewModel.isSending)
-                .onSubmit(sendDraft)
-            Button("发送", action: sendDraft)
-                .disabled(viewModel.isSending || draft.trimmingCharacters(in: .whitespaces).isEmpty)
+                Button {
+                    startRecording()
+                } label: {
+                    Image(systemName: "mic.circle")
+                }
+                .disabled(viewModel.isSending)
+                TextField("输入消息", text: $draft)
+                    .textFieldStyle(.roundedBorder)
+                    .disabled(viewModel.isSending)
+                    .onSubmit(sendDraft)
+                Button("发送", action: sendDraft)
+                    .disabled(viewModel.isSending || draft.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+            .padding()
+        }
+    }
+
+    private var recordingBar: some View {
+        HStack {
+            Button("取消") {
+                audioRecorder.cancelRecording()
+            }
+            Spacer()
+            Text("录音中 \(formattedDuration(audioRecorder.elapsed))")
+                .foregroundStyle(.secondary)
+            Spacer()
+            Button("完成") {
+                finishRecording()
+            }
         }
         .padding()
     }
@@ -148,6 +182,29 @@ struct ChatView: View {
             return
         }
         viewModel.sendImage(data: data, filename: "image.jpg", mimeType: "image/jpeg")
+    }
+
+    private func startRecording() {
+        audioRecorder.requestPermission { granted in
+            guard granted else { return }
+            try? audioRecorder.startRecording()
+        }
+    }
+
+    private func finishRecording() {
+        guard let (url, duration) = audioRecorder.stopRecording() else { return }
+        sendRecording(url: url, duration: duration)
+    }
+
+    private func sendRecording(url: URL, duration: TimeInterval) {
+        defer { try? FileManager.default.removeItem(at: url) }
+        guard let data = try? Data(contentsOf: url) else { return }
+        viewModel.sendVoice(data: data, filename: "voice.m4a", mimeType: "audio/m4a", duration: duration)
+    }
+
+    private func formattedDuration(_ duration: TimeInterval) -> String {
+        let totalSeconds = Int(duration)
+        return String(format: "%d:%02d", totalSeconds / 60, totalSeconds % 60)
     }
 }
 
@@ -181,6 +238,8 @@ private struct MessageBubble: View {
                             .scaledToFit()
                             .frame(maxWidth: 220)
                             .clipShape(RoundedRectangle(cornerRadius: 14))
+                    } else if let audioData = message.audioData {
+                        VoiceMessageBubble(audioData: audioData, duration: message.audioDuration, isFromMe: message.isFromMe)
                     } else {
                         Text(message.text)
                             .padding(.horizontal, 12)
@@ -196,5 +255,68 @@ private struct MessageBubble: View {
                 if !message.isFromMe { Spacer(minLength: 40) }
             }
         }
+    }
+}
+
+private final class VoicePlayerController: NSObject, ObservableObject, AVAudioPlayerDelegate {
+    @Published var isPlaying = false
+
+    private var player: AVAudioPlayer?
+
+    func toggle(data: Data) {
+        if isPlaying {
+            player?.stop()
+            isPlaying = false
+            ProximityAudioRouter.shared.endPlayback()
+            return
+        }
+        guard let player = try? AVAudioPlayer(data: data) else { return }
+        player.delegate = self
+        self.player = player
+        ProximityAudioRouter.shared.beginPlayback()
+        player.play()
+        isPlaying = true
+    }
+
+    func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+        DispatchQueue.main.async { [weak self] in
+            self?.isPlaying = false
+            ProximityAudioRouter.shared.endPlayback()
+        }
+    }
+
+    deinit {
+        if isPlaying { ProximityAudioRouter.shared.endPlayback() }
+    }
+}
+
+private struct VoiceMessageBubble: View {
+    let audioData: Data
+    let duration: TimeInterval?
+    let isFromMe: Bool
+
+    @StateObject private var player = VoicePlayerController()
+
+    var body: some View {
+        Button {
+            player.toggle(data: audioData)
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: player.isPlaying ? "pause.circle.fill" : "play.circle.fill")
+                Text(formattedDuration(duration ?? 0))
+                    .font(.callout)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(isFromMe ? Color.accentColor : Color(.systemGray5))
+            .foregroundStyle(isFromMe ? .white : .primary)
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func formattedDuration(_ duration: TimeInterval) -> String {
+        let totalSeconds = Int(duration.rounded())
+        return String(format: "%d:%02d", totalSeconds / 60, totalSeconds % 60)
     }
 }

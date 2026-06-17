@@ -19,6 +19,10 @@ final class ChatRepository: ChatRepositoryProtocol {
         Self.map(try await conversationManager.sendImage(conversationId: conversationId, imageData: imageData, filename: filename, mimeType: mimeType))
     }
 
+    func sendVoiceMessage(conversationId: String, audioData: Data, filename: String, mimeType: String, duration: TimeInterval) async throws -> ChatMessage {
+        Self.map(try await conversationManager.sendVoiceMessage(conversationId: conversationId, audioData: audioData, filename: filename, mimeType: mimeType, duration: duration))
+    }
+
     func streamMessages(conversationId: String) -> AsyncThrowingStream<ChatMessage, Error> {
         AsyncThrowingStream { continuation in
             let task = Task {
@@ -48,6 +52,8 @@ final class ChatRepository: ChatRepositoryProtocol {
             senderInboxId: info.senderInboxId,
             nicknameUpdate: info.nicknameUpdate.map { ChatMessage.NicknameUpdate(inboxId: $0.inboxId, nickname: $0.nickname) },
             imageData: info.imageData,
+            audioData: info.audioData,
+            audioDuration: info.audioDuration,
             sentAt: info.sentAt
         )
     }

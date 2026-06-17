@@ -13,5 +13,7 @@ struct ChatMessage: Identifiable, Equatable {
     let senderInboxId: String
     let nicknameUpdate: NicknameUpdate?
     let imageData: Data?
+    let audioData: Data?
+    let audioDuration: TimeInterval?
     let sentAt: Date
 }
