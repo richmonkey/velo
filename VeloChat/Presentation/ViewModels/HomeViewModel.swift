@@ -10,23 +10,27 @@ enum HomeViewState {
 @MainActor
 final class HomeViewModel: ObservableObject {
     @Published private(set) var viewState: HomeViewState = .loading
+    @Published private(set) var unreadCounts: [String: Int] = [:]
 
     private let fetchConversations: FetchConversationsUseCase
     private let setupPushNotifications: SetupPushNotificationsUseCase
     private let syncPushSubscriptions: SyncPushSubscriptionsUseCase
     private let streamAllMessages: StreamAllMessagesUseCase
+    private let unreadCountStore: UnreadCountRepositoryProtocol
     private var streamTask: Task<Void, Never>?
 
     init(
         fetchConversations: FetchConversationsUseCase,
         setupPushNotifications: SetupPushNotificationsUseCase,
         syncPushSubscriptions: SyncPushSubscriptionsUseCase,
-        streamAllMessages: StreamAllMessagesUseCase
+        streamAllMessages: StreamAllMessagesUseCase,
+        unreadCountStore: UnreadCountRepositoryProtocol
     ) {
         self.fetchConversations = fetchConversations
         self.setupPushNotifications = setupPushNotifications
         self.syncPushSubscriptions = syncPushSubscriptions
         self.streamAllMessages = streamAllMessages
+        self.unreadCountStore = unreadCountStore
     }
 
     func didLoad() {
@@ -39,6 +43,10 @@ final class HomeViewModel: ObservableObject {
         await load()
     }
 
+    func refreshUnreadCounts() {
+        unreadCounts = unreadCountStore.loadAll()
+    }
+
     func stopStreaming() {
         streamTask?.cancel()
         streamTask = nil
@@ -47,7 +55,9 @@ final class HomeViewModel: ObservableObject {
     private func startStreaming() {
         streamTask = Task {
             do {
-                for try await _ in streamAllMessages.execute() {
+                for try await conversationId in streamAllMessages.execute() {
+                    unreadCountStore.increment(conversationId: conversationId)
+                    unreadCounts = unreadCountStore.loadAll()
                     await load()
                 }
             } catch {

@@ -35,7 +35,7 @@ protocol XMTPConversationManaging {
     func fetchMessages(conversationId: String) async throws -> [ChatMessageInfo]
     func sendMessage(conversationId: String, text: String) async throws -> ChatMessageInfo
     func streamMessages(conversationId: String) -> AsyncThrowingStream<ChatMessageInfo, Error>
-    func streamAllMessages() -> AsyncThrowingStream<ChatMessageInfo, Error>
+    func streamAllMessages() -> AsyncThrowingStream<String, Error>
     func pushTopics(forConversationIds conversationIds: [String]) async throws -> [String]
 }
 
@@ -107,13 +107,13 @@ final class XMTPConversationManager: XMTPConversationManaging {
         }
     }
 
-    func streamAllMessages() -> AsyncThrowingStream<ChatMessageInfo, Error> {
+    func streamAllMessages() -> AsyncThrowingStream<String, Error> {
         AsyncThrowingStream { continuation in
             let task = Task {
                 do {
                     let client = try await self.clientManager.currentClient()
                     for try await message in await client.conversations.streamAllMessages() {
-                        continuation.yield(self.map(message, currentInboxId: client.inboxID))
+                        continuation.yield(message.topic)
                     }
                     continuation.finish()
                 } catch {

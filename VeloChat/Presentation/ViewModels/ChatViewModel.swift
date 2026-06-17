@@ -17,6 +17,7 @@ final class ChatViewModel: ObservableObject {
     private let fetchMessages: FetchMessagesUseCase
     private let sendMessage: SendMessageUseCase
     private let streamMessages: StreamMessagesUseCase
+    private let unreadCountStore: UnreadCountRepositoryProtocol
     private var streamTask: Task<Void, Never>?
 
     init(
@@ -24,16 +25,19 @@ final class ChatViewModel: ObservableObject {
         conversationTitle: String,
         fetchMessages: FetchMessagesUseCase,
         sendMessage: SendMessageUseCase,
-        streamMessages: StreamMessagesUseCase
+        streamMessages: StreamMessagesUseCase,
+        unreadCountStore: UnreadCountRepositoryProtocol
     ) {
         self.conversationId = conversationId
         self.conversationTitle = conversationTitle
         self.fetchMessages = fetchMessages
         self.sendMessage = sendMessage
         self.streamMessages = streamMessages
+        self.unreadCountStore = unreadCountStore
     }
 
     func didLoad() {
+        unreadCountStore.reset(conversationId: conversationId)
         Task { await load() }
         startStreaming()
     }
@@ -55,6 +59,7 @@ final class ChatViewModel: ObservableObject {
     }
 
     func stopStreaming() {
+        unreadCountStore.reset(conversationId: conversationId)
         streamTask?.cancel()
         streamTask = nil
     }

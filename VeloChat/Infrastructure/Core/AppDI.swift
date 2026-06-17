@@ -13,6 +13,7 @@ final class AppDI {
     let pushNotificationManager: PushNotificationManaging
     let setupPushNotificationsUseCase: SetupPushNotificationsUseCase
     let syncPushSubscriptionsUseCase: SyncPushSubscriptionsUseCase
+    let unreadCountRepository: UnreadCountRepositoryProtocol
 
     private init() {
         let keychain = KeychainService()
@@ -38,6 +39,8 @@ final class AppDI {
         let pushRepository = PushNotificationRepository(pushManager: pushManager, conversationManager: conversationManager)
         setupPushNotificationsUseCase = DefaultSetupPushNotificationsUseCase(repository: pushRepository)
         syncPushSubscriptionsUseCase = DefaultSyncPushSubscriptionsUseCase(repository: pushRepository)
+
+        unreadCountRepository = UnreadCountRepository()
     }
 
     @MainActor
@@ -51,7 +54,8 @@ final class AppDI {
             fetchConversations: fetchConversationsUseCase,
             setupPushNotifications: setupPushNotificationsUseCase,
             syncPushSubscriptions: syncPushSubscriptionsUseCase,
-            streamAllMessages: streamAllMessagesUseCase
+            streamAllMessages: streamAllMessagesUseCase,
+            unreadCountStore: unreadCountRepository
         )
     }
 
@@ -72,7 +76,8 @@ final class AppDI {
             conversationTitle: conversationTitle,
             fetchMessages: fetchMessagesUseCase,
             sendMessage: sendMessageUseCase,
-            streamMessages: streamMessagesUseCase
+            streamMessages: streamMessagesUseCase,
+            unreadCountStore: unreadCountRepository
         )
     }
 }

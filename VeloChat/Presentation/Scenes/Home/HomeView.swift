@@ -52,11 +52,17 @@ struct HomeView: View {
         case .loaded(let conversations):
             List(conversations) { conversation in
                 NavigationLink(value: conversation) {
-                    ConversationRow(conversation: conversation)
+                    ConversationRow(
+                        conversation: conversation,
+                        unreadCount: viewModel.unreadCounts[conversation.id] ?? 0
+                    )
                 }
             }
             .refreshable {
                 await viewModel.refresh()
+            }
+            .onAppear {
+                viewModel.refreshUnreadCounts()
             }
         case .error(let message):
             errorState(message)
@@ -92,17 +98,29 @@ struct HomeView: View {
 
 private struct ConversationRow: View {
     let conversation: ConversationSummary
+    let unreadCount: Int
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(conversation.title)
-                .font(.headline)
-                .lineLimit(1)
-            if let preview = conversation.lastMessagePreview {
-                Text(preview)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(conversation.title)
+                    .font(.headline)
                     .lineLimit(1)
+                if let preview = conversation.lastMessagePreview {
+                    Text(preview)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+            }
+            Spacer()
+            if unreadCount > 0 {
+                Text("\(unreadCount)")
+                    .font(.caption2.bold())
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(Color.red, in: Capsule())
             }
         }
         .padding(.vertical, 4)
