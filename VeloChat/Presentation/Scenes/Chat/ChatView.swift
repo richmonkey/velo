@@ -10,6 +10,7 @@ struct ChatView: View {
     @State private var showCamera = false
     @StateObject private var audioRecorder = AudioRecorder()
     @FocusState private var isDraftFocused: Bool
+    @State private var fullScreenImage: FullScreenImage?
 
     private var isCameraAvailable: Bool {
         UIImagePickerController.isSourceTypeAvailable(.camera)
@@ -64,6 +65,9 @@ struct ChatView: View {
             }
         }
         .photosPicker(isPresented: $showPhotoPicker, selection: $selectedPhotoItem, matching: .images)
+        .fullScreenCover(item: $fullScreenImage) { item in
+            FullScreenImageView(messageId: item.messageId, data: item.data)
+        }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 switch viewModel.kind {
@@ -104,8 +108,13 @@ struct ChatView: View {
                 ScrollView {
                     LazyVStack(spacing: 8) {
                         ForEach(messages) { message in
-                            MessageBubble(message: message, kind: viewModel.kind, nameResolver: viewModel.displayName)
-                                .id(message.id)
+                            MessageBubble(
+                                message: message,
+                                kind: viewModel.kind,
+                                nameResolver: viewModel.displayName,
+                                onImageTap: { data in fullScreenImage = FullScreenImage(messageId: message.id, data: data) }
+                            )
+                            .id(message.id)
                         }
                     }
                     .padding()
@@ -229,10 +238,91 @@ struct ChatView: View {
     }
 }
 
+private struct FullScreenImage: Identifiable {
+    let id = UUID()
+    let messageId: String
+    let data: Data
+}
+
+private struct FullScreenImageView: View {
+    let messageId: String
+    let data: Data
+    @Environment(\.dismiss) private var dismiss
+    @State private var scale: CGFloat = 1
+    @State private var lastScale: CGFloat = 1
+    @State private var offset: CGSize = .zero
+    @State private var lastOffset: CGSize = .zero
+
+    private var originalImage: UIImage? { UIImage(data: data) }
+
+    private var magnification: some Gesture {
+        MagnificationGesture()
+            .onChanged { value in
+                scale = max(1, min(lastScale * value, 4))
+            }
+            .onEnded { _ in
+                lastScale = scale
+                if scale <= 1 {
+                    scale = 1
+                    lastScale = 1
+                    offset = .zero
+                    lastOffset = .zero
+                }
+            }
+    }
+
+    private var pan: some Gesture {
+        DragGesture()
+            .onChanged { value in
+                guard scale > 1 else { return }
+                offset = CGSize(
+                    width: lastOffset.width + value.translation.width,
+                    height: lastOffset.height + value.translation.height
+                )
+            }
+            .onEnded { _ in
+                lastOffset = offset
+            }
+    }
+
+    private func toggleZoom() {
+        withAnimation {
+            if scale > 1 {
+                scale = 1
+                lastScale = 1
+                offset = .zero
+                lastOffset = .zero
+            } else {
+                scale = 2
+                lastScale = 2
+            }
+        }
+    }
+
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            Color.black.ignoresSafeArea()
+            if let originalImage {
+                Image(uiImage: originalImage)
+                    .resizable()
+                    .scaledToFit()
+                    .scaleEffect(scale)
+                    .offset(offset)
+            }
+        }
+        .contentShape(Rectangle())
+        .gesture(magnification)
+        .simultaneousGesture(pan)
+        .onTapGesture(count: 2) { toggleZoom() }
+        .onTapGesture(count: 1) { if scale == 1 { dismiss() } }
+    }
+}
+
 private struct MessageBubble: View {
     let message: ChatMessage
     let kind: ConversationSummary.Kind
     let nameResolver: (String) -> String
+    let onImageTap: (Data) -> Void
 
     var body: some View {
         if message.isSystemNotice {
@@ -259,6 +349,7 @@ private struct MessageBubble: View {
                             .scaledToFit()
                             .frame(maxWidth: 220)
                             .clipShape(RoundedRectangle(cornerRadius: 14))
+                            .onTapGesture { onImageTap(imageData) }
                     } else if let audioData = message.audioData {
                         VoiceMessageBubble(audioData: audioData, duration: message.audioDuration, isFromMe: message.isFromMe)
                     } else {
