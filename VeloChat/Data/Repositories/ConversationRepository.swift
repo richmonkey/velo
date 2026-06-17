@@ -20,6 +20,15 @@ final class ConversationRepository: ConversationRepositoryProtocol {
         return Self.map(info)
     }
 
+    func fetchGroupInfo(conversationId: String) async throws -> GroupInfo {
+        let info = try await conversationManager.fetchGroupInfo(conversationId: conversationId)
+        return GroupInfo(name: info.name, announcement: info.announcement)
+    }
+
+    func updateGroupAnnouncement(conversationId: String, announcement: String) async throws {
+        try await conversationManager.updateGroupAnnouncement(conversationId: conversationId, announcement: announcement)
+    }
+
     private static func map(_ info: ConversationSummaryInfo) -> ConversationSummary {
         ConversationSummary(
             id: info.id,

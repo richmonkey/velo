@@ -29,10 +29,17 @@ struct ChatView: View {
             viewModel.stopStreaming()
         }
         .toolbar {
-            if viewModel.kind == .dm {
-                ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItem(placement: .topBarTrailing) {
+                switch viewModel.kind {
+                case .dm:
                     NavigationLink {
                         ConversationSettingsView(conversationId: viewModel.conversationId)
+                    } label: {
+                        Image(systemName: "info.circle")
+                    }
+                case .group:
+                    NavigationLink {
+                        GroupSettingsView(conversationId: viewModel.conversationId)
                     } label: {
                         Image(systemName: "info.circle")
                     }

@@ -15,6 +15,11 @@ struct ConversationSummaryInfo {
     let peerInboxId: String?
 }
 
+struct GroupInfoData {
+    let name: String
+    let announcement: String
+}
+
 struct ChatMessageInfo {
     let id: String
     let text: String
@@ -24,9 +29,15 @@ struct ChatMessageInfo {
 
 enum ConversationManagerError: LocalizedError {
     case conversationNotFound
+    case notAGroup
 
     var errorDescription: String? {
-        "未找到该会话"
+        switch self {
+        case .conversationNotFound:
+            return "未找到该会话"
+        case .notAGroup:
+            return "该会话不是群组"
+        }
     }
 }
 
@@ -39,6 +50,8 @@ protocol XMTPConversationManaging {
     func streamAllMessages() -> AsyncThrowingStream<String, Error>
     func createGroup(name: String, peerInboxIds: [String]) async throws -> ConversationSummaryInfo
     func pushTopics(forConversationIds conversationIds: [String]) async throws -> [String]
+    func fetchGroupInfo(conversationId: String) async throws -> GroupInfoData
+    func updateGroupAnnouncement(conversationId: String, announcement: String) async throws
 }
 
 final class XMTPConversationManager: XMTPConversationManaging {
@@ -146,6 +159,31 @@ final class XMTPConversationManager: XMTPConversationManaging {
             topics.append(contentsOf: try await conversation.getPushTopics())
         }
         return topics
+    }
+
+    func fetchGroupInfo(conversationId: String) async throws -> GroupInfoData {
+        let client = try await clientManager.currentClient()
+        guard let conversation = try await client.conversations.findConversation(conversationId: conversationId) else {
+            throw ConversationManagerError.conversationNotFound
+        }
+        guard case .group(let group) = conversation else {
+            throw ConversationManagerError.notAGroup
+        }
+        return GroupInfoData(
+            name: (try? group.name()) ?? "群聊",
+            announcement: (try? group.description()) ?? ""
+        )
+    }
+
+    func updateGroupAnnouncement(conversationId: String, announcement: String) async throws {
+        let client = try await clientManager.currentClient()
+        guard let conversation = try await client.conversations.findConversation(conversationId: conversationId) else {
+            throw ConversationManagerError.conversationNotFound
+        }
+        guard case .group(let group) = conversation else {
+            throw ConversationManagerError.notAGroup
+        }
+        try await group.updateDescription(description: announcement)
     }
 
     private func map(_ message: DecodedMessage, currentInboxId: String) -> ChatMessageInfo {
