@@ -21,6 +21,29 @@ struct GroupSettingsView: View {
                     .frame(minHeight: 120)
                     .autocorrectionDisabled()
             }
+            Section("我的群昵称") {
+                HStack {
+                    TextField("设置你在本群的昵称", text: $viewModel.myNickname)
+                        .autocorrectionDisabled()
+                    Button("发送") {
+                        viewModel.saveMyNickname()
+                    }
+                    .disabled(viewModel.myNickname.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+            Section("群成员") {
+                ForEach(viewModel.members) { member in
+                    HStack {
+                        Text(displayName(for: member))
+                        if member.isMe {
+                            Spacer()
+                            Text("我")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            }
         }
         .navigationTitle("群组设置")
         .navigationBarTitleDisplayMode(.inline)
@@ -47,5 +70,12 @@ struct GroupSettingsView: View {
             get: { viewModel.errorMessage != nil },
             set: { if !$0 { viewModel.errorMessage = nil } }
         )
+    }
+
+    private func displayName(for member: GroupMember) -> String {
+        if member.isMe { return "我" }
+        if let nickname = member.nickname, !nickname.isEmpty { return nickname }
+        guard member.id.count > 10 else { return member.id }
+        return "\(member.id.prefix(6))…\(member.id.suffix(4))"
     }
 }

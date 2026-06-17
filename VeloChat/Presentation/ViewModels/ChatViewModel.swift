@@ -15,12 +15,15 @@ final class ChatViewModel: ObservableObject {
     @Published private(set) var conversationTitle: String
     let kind: ConversationSummary.Kind
 
+    @Published private(set) var nicknameByInboxId: [String: String] = [:]
+
     private let defaultTitle: String
     private let fetchMessages: FetchMessagesUseCase
     private let sendMessage: SendMessageUseCase
     private let streamMessages: StreamMessagesUseCase
     private let unreadCountStore: UnreadCountRepositoryProtocol
     private let noteRepository: ConversationNoteRepositoryProtocol
+    private let fetchGroupMembers: FetchGroupMembersUseCase
     private var streamTask: Task<Void, Never>?
 
     init(
@@ -31,7 +34,8 @@ final class ChatViewModel: ObservableObject {
         sendMessage: SendMessageUseCase,
         streamMessages: StreamMessagesUseCase,
         unreadCountStore: UnreadCountRepositoryProtocol,
-        noteRepository: ConversationNoteRepositoryProtocol
+        noteRepository: ConversationNoteRepositoryProtocol,
+        fetchGroupMembers: FetchGroupMembersUseCase
     ) {
         self.conversationId = conversationId
         self.conversationTitle = conversationTitle
@@ -42,6 +46,7 @@ final class ChatViewModel: ObservableObject {
         self.streamMessages = streamMessages
         self.unreadCountStore = unreadCountStore
         self.noteRepository = noteRepository
+        self.fetchGroupMembers = fetchGroupMembers
     }
 
     func refreshTitle() {
@@ -53,6 +58,17 @@ final class ChatViewModel: ObservableObject {
         unreadCountStore.reset(conversationId: conversationId)
         Task { await load() }
         startStreaming()
+        if kind == .group {
+            Task { await loadMembers() }
+        }
+    }
+
+    func displayName(forInboxId inboxId: String) -> String {
+        if let nickname = nicknameByInboxId[inboxId], !nickname.isEmpty {
+            return nickname
+        }
+        guard inboxId.count > 10 else { return inboxId }
+        return "\(inboxId.prefix(6))…\(inboxId.suffix(4))"
     }
 
     func send(text: String) {
@@ -80,9 +96,27 @@ final class ChatViewModel: ObservableObject {
     private func load() async {
         do {
             let messages = try await fetchMessages.execute(conversationId: conversationId)
+            for message in messages {
+                if let update = message.nicknameUpdate {
+                    nicknameByInboxId[update.inboxId] = update.nickname
+                }
+            }
             viewState = .loaded(messages)
         } catch {
             viewState = .error(error.localizedDescription)
+        }
+    }
+
+    private func loadMembers() async {
+        do {
+            let members = try await fetchGroupMembers.execute(conversationId: conversationId)
+            for member in members {
+                if let nickname = member.nickname {
+                    nicknameByInboxId[member.id] = nickname
+                }
+            }
+        } catch {
+            // Best-effort: sender labels just fall back to abbreviated inbox ids.
         }
     }
 
@@ -99,6 +133,9 @@ final class ChatViewModel: ObservableObject {
     }
 
     private func appendIfNeeded(_ message: ChatMessage) {
+        if let update = message.nicknameUpdate {
+            nicknameByInboxId[update.inboxId] = update.nickname
+        }
         guard case .loaded(var messages) = viewState else {
             viewState = .loaded([message])
             return

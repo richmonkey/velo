@@ -39,6 +39,8 @@ final class ChatRepository: ChatRepositoryProtocol {
             text: info.text,
             isFromMe: info.isFromMe,
             isSystemNotice: info.isSystemNotice,
+            senderInboxId: info.senderInboxId,
+            nicknameUpdate: info.nicknameUpdate.map { ChatMessage.NicknameUpdate(inboxId: $0.inboxId, nickname: $0.nickname) },
             sentAt: info.sentAt
         )
     }

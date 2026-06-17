@@ -20,11 +20,24 @@ struct GroupInfoData {
     let announcement: String
 }
 
+struct GroupMemberInfo {
+    let inboxId: String
+    let isMe: Bool
+    let nickname: String?
+}
+
+struct NicknameUpdateInfo {
+    let inboxId: String
+    let nickname: String
+}
+
 struct ChatMessageInfo {
     let id: String
     let text: String
     let isFromMe: Bool
     let isSystemNotice: Bool
+    let senderInboxId: String
+    let nicknameUpdate: NicknameUpdateInfo?
     let sentAt: Date
 }
 
@@ -53,13 +66,17 @@ protocol XMTPConversationManaging {
     func pushTopics(forConversationIds conversationIds: [String]) async throws -> [String]
     func fetchGroupInfo(conversationId: String) async throws -> GroupInfoData
     func updateGroupAnnouncement(conversationId: String, announcement: String) async throws
+    func fetchGroupMembers(conversationId: String) async throws -> [GroupMemberInfo]
+    func updateMyNickname(conversationId: String, nickname: String) async throws
 }
 
 final class XMTPConversationManager: XMTPConversationManaging {
     private let clientManager: XMTPClientManaging
+    private let memberNicknameStore: MemberNicknameStoring
 
-    init(clientManager: XMTPClientManaging) {
+    init(clientManager: XMTPClientManaging, memberNicknameStore: MemberNicknameStoring) {
         self.clientManager = clientManager
+        self.memberNicknameStore = memberNicknameStore
     }
 
     func fetchConversations() async throws -> [ConversationSummaryInfo] {
@@ -91,7 +108,7 @@ final class XMTPConversationManager: XMTPConversationManaging {
         try await conversation.sync()
         let messages = try await conversation.messages(limit: 50, direction: .ascending)
         let isGroup = Self.isGroup(conversation)
-        return messages.compactMap { map($0, currentInboxId: client.inboxID, isGroup: isGroup) }
+        return messages.compactMap { map($0, conversationId: conversationId, currentInboxId: client.inboxID, isGroup: isGroup) }
     }
 
     func sendMessage(conversationId: String, text: String) async throws -> ChatMessageInfo {
@@ -100,7 +117,7 @@ final class XMTPConversationManager: XMTPConversationManaging {
             throw ConversationManagerError.conversationNotFound
         }
         let messageId = try await conversation.send(text: text)
-        return ChatMessageInfo(id: messageId, text: text, isFromMe: true, isSystemNotice: false, sentAt: Date())
+        return ChatMessageInfo(id: messageId, text: text, isFromMe: true, isSystemNotice: false, senderInboxId: client.inboxID, nicknameUpdate: nil, sentAt: Date())
     }
 
     func streamMessages(conversationId: String) -> AsyncThrowingStream<ChatMessageInfo, Error> {
@@ -114,7 +131,7 @@ final class XMTPConversationManager: XMTPConversationManaging {
                     }
                     let isGroup = Self.isGroup(conversation)
                     for try await message in conversation.streamMessages() {
-                        if let info = self.map(message, currentInboxId: client.inboxID, isGroup: isGroup) {
+                        if let info = self.map(message, conversationId: conversationId, currentInboxId: client.inboxID, isGroup: isGroup) {
                             continuation.yield(info)
                         }
                     }
@@ -191,7 +208,34 @@ final class XMTPConversationManager: XMTPConversationManaging {
         try await group.updateDescription(description: announcement)
     }
 
-    private func map(_ message: DecodedMessage, currentInboxId: String, isGroup: Bool) -> ChatMessageInfo? {
+    func fetchGroupMembers(conversationId: String) async throws -> [GroupMemberInfo] {
+        let client = try await clientManager.currentClient()
+        guard let conversation = try await client.conversations.findConversation(conversationId: conversationId) else {
+            throw ConversationManagerError.conversationNotFound
+        }
+        guard case .group(let group) = conversation else {
+            throw ConversationManagerError.notAGroup
+        }
+        let members = try await group.members
+        let nicknames = memberNicknameStore.nicknames(forConversationId: conversationId)
+        return members.map {
+            GroupMemberInfo(inboxId: $0.inboxId, isMe: $0.inboxId == client.inboxID, nickname: nicknames[$0.inboxId])
+        }
+    }
+
+    func updateMyNickname(conversationId: String, nickname: String) async throws {
+        let client = try await clientManager.currentClient()
+        guard let conversation = try await client.conversations.findConversation(conversationId: conversationId) else {
+            throw ConversationManagerError.conversationNotFound
+        }
+        guard case .group = conversation else {
+            throw ConversationManagerError.notAGroup
+        }
+        _ = try await conversation.send(content: nickname, options: SendOptions(contentType: ContentTypeMemberNickname))
+        memberNicknameStore.setNickname(nickname, forConversationId: conversationId, inboxId: client.inboxID)
+    }
+
+    private func map(_ message: DecodedMessage, conversationId: String, currentInboxId: String, isGroup: Bool) -> ChatMessageInfo? {
         let contentType = try? message.encodedContent.type
         if contentType == ContentTypeGroupUpdated {
             guard isGroup, let update: GroupUpdated = try? message.content() else {
@@ -202,6 +246,25 @@ final class XMTPConversationManager: XMTPConversationManaging {
                 text: Self.summarize(update),
                 isFromMe: message.senderInboxId == currentInboxId,
                 isSystemNotice: true,
+                senderInboxId: message.senderInboxId,
+                nicknameUpdate: nil,
+                sentAt: message.sentAt
+            )
+        }
+
+        if contentType == ContentTypeMemberNickname {
+            guard isGroup, let nickname: String = try? message.content(), !nickname.isEmpty else {
+                return nil
+            }
+            let senderId = message.senderInboxId
+            memberNicknameStore.setNickname(nickname, forConversationId: conversationId, inboxId: senderId)
+            return ChatMessageInfo(
+                id: message.id,
+                text: "\(Self.abbreviated(senderId)) 设置了群昵称「\(nickname)」",
+                isFromMe: senderId == currentInboxId,
+                isSystemNotice: true,
+                senderInboxId: senderId,
+                nicknameUpdate: NicknameUpdateInfo(inboxId: senderId, nickname: nickname),
                 sentAt: message.sentAt
             )
         }
@@ -211,6 +274,8 @@ final class XMTPConversationManager: XMTPConversationManaging {
             text: (try? message.body) ?? "",
             isFromMe: message.senderInboxId == currentInboxId,
             isSystemNotice: false,
+            senderInboxId: message.senderInboxId,
+            nicknameUpdate: nil,
             sentAt: message.sentAt
         )
     }

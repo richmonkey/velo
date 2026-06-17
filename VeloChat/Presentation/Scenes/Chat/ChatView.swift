@@ -68,7 +68,7 @@ struct ChatView: View {
                 ScrollView {
                     LazyVStack(spacing: 8) {
                         ForEach(messages) { message in
-                            MessageBubble(message: message)
+                            MessageBubble(message: message, kind: viewModel.kind, nameResolver: viewModel.displayName)
                                 .id(message.id)
                         }
                     }
@@ -105,6 +105,8 @@ struct ChatView: View {
 
 private struct MessageBubble: View {
     let message: ChatMessage
+    let kind: ConversationSummary.Kind
+    let nameResolver: (String) -> String
 
     var body: some View {
         if message.isSystemNotice {
@@ -120,6 +122,11 @@ private struct MessageBubble: View {
             HStack {
                 if message.isFromMe { Spacer(minLength: 40) }
                 VStack(alignment: message.isFromMe ? .trailing : .leading, spacing: 2) {
+                    if kind == .group, !message.isFromMe {
+                        Text(nameResolver(message.senderInboxId))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
                     Text(message.text)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 8)

@@ -13,11 +13,14 @@ final class AppDI {
     let createGroupUseCase: CreateGroupUseCase
     let fetchGroupInfoUseCase: FetchGroupInfoUseCase
     let updateGroupAnnouncementUseCase: UpdateGroupAnnouncementUseCase
+    let fetchGroupMembersUseCase: FetchGroupMembersUseCase
+    let updateMyNicknameUseCase: UpdateMyNicknameUseCase
     let pushNotificationManager: PushNotificationManaging
     let setupPushNotificationsUseCase: SetupPushNotificationsUseCase
     let syncPushSubscriptionsUseCase: SyncPushSubscriptionsUseCase
     let unreadCountRepository: UnreadCountRepositoryProtocol
     let conversationNoteRepository: ConversationNoteRepositoryProtocol
+    let memberNicknameStore: MemberNicknameStoring
 
     private init() {
         let keychain = KeychainService()
@@ -26,7 +29,8 @@ final class AppDI {
         let repository = XMTPRepository(clientManager: clientManager)
         initializeXMTPClientUseCase = DefaultInitializeXMTPClientUseCase(repository: repository)
 
-        let conversationManager = XMTPConversationManager(clientManager: clientManager)
+        memberNicknameStore = MemberNicknameStore()
+        let conversationManager = XMTPConversationManager(clientManager: clientManager, memberNicknameStore: memberNicknameStore)
         let conversationRepository = ConversationRepository(conversationManager: conversationManager)
         fetchConversationsUseCase = DefaultFetchConversationsUseCase(repository: conversationRepository)
         startConversationUseCase = DefaultStartConversationUseCase(repository: conversationRepository)
@@ -39,6 +43,8 @@ final class AppDI {
         createGroupUseCase = DefaultCreateGroupUseCase(repository: conversationRepository)
         fetchGroupInfoUseCase = DefaultFetchGroupInfoUseCase(repository: conversationRepository)
         updateGroupAnnouncementUseCase = DefaultUpdateGroupAnnouncementUseCase(repository: conversationRepository)
+        fetchGroupMembersUseCase = DefaultFetchGroupMembersUseCase(repository: conversationRepository)
+        updateMyNicknameUseCase = DefaultUpdateMyNicknameUseCase(repository: conversationRepository)
 
         let pushManager = PushNotificationManager()
         pushManager.configure(pushServerHost: Self.pushServerHost)
@@ -88,7 +94,8 @@ final class AppDI {
             sendMessage: sendMessageUseCase,
             streamMessages: streamMessagesUseCase,
             unreadCountStore: unreadCountRepository,
-            noteRepository: conversationNoteRepository
+            noteRepository: conversationNoteRepository,
+            fetchGroupMembers: fetchGroupMembersUseCase
         )
     }
 
@@ -114,7 +121,9 @@ final class AppDI {
         GroupSettingsViewModel(
             conversationId: conversationId,
             fetchGroupInfo: fetchGroupInfoUseCase,
-            updateGroupAnnouncement: updateGroupAnnouncementUseCase
+            updateGroupAnnouncement: updateGroupAnnouncementUseCase,
+            fetchGroupMembers: fetchGroupMembersUseCase,
+            updateMyNickname: updateMyNicknameUseCase
         )
     }
 }

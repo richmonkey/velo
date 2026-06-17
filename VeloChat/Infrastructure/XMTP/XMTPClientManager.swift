@@ -67,6 +67,7 @@ final class XMTPClientManager: XMTPClientManaging {
             )
         )
         Client.register(codec: GroupUpdatedCodec())
+        Client.register(codec: MemberNicknameCodec())
 
         return ClientBundle(client: client, walletAddress: account.identity.identifier)
     }

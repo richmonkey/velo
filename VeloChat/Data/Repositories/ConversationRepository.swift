@@ -29,6 +29,15 @@ final class ConversationRepository: ConversationRepositoryProtocol {
         try await conversationManager.updateGroupAnnouncement(conversationId: conversationId, announcement: announcement)
     }
 
+    func fetchGroupMembers(conversationId: String) async throws -> [GroupMember] {
+        let infos = try await conversationManager.fetchGroupMembers(conversationId: conversationId)
+        return infos.map { GroupMember(id: $0.inboxId, isMe: $0.isMe, nickname: $0.nickname) }
+    }
+
+    func updateMyNickname(conversationId: String, nickname: String) async throws {
+        try await conversationManager.updateMyNickname(conversationId: conversationId, nickname: nickname)
+    }
+
     private static func map(_ info: ConversationSummaryInfo) -> ConversationSummary {
         ConversationSummary(
             id: info.id,
