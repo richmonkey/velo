@@ -1,7 +1,10 @@
 import SwiftUI
+import UIKit
 
 struct MeView: View {
     @StateObject private var viewModel = AppDI.shared.makeMeViewModel()
+    @State private var showingScan = false
+    @State private var shareItem: ShareImageItem?
 
     var body: some View {
         NavigationStack {
@@ -9,6 +12,26 @@ struct MeView: View {
                 .navigationTitle("我的")
                 .task {
                     viewModel.didLoad()
+                }
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        if case .loaded(let identity) = viewModel.viewState {
+                            Button {
+                                if let image = QRCodeGenerator.generate(from: identity.inboxId) {
+                                    shareItem = ShareImageItem(image: image)
+                                }
+                            } label: {
+                                Image(systemName: "square.and.arrow.up")
+                            }
+                        }
+                    }
+                }
+                .sheet(isPresented: $showingScan) {
+                    ScanView()
+                }
+                .sheet(item: $shareItem) { item in
+                    ActivityView(items: [item.image])
+                        .presentationDetents([.medium, .large])
                 }
         }
     }
@@ -51,9 +74,36 @@ struct MeView: View {
                 .multilineTextAlignment(.center)
                 .textSelection(.enabled)
                 .padding(.horizontal)
+
+            Spacer()
+
+            Button {
+                showingScan = true
+            } label: {
+                Label("扫描二维码", systemImage: "qrcode.viewfinder")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .padding(.horizontal)
+            .padding(.bottom)
         }
         .padding()
     }
+}
+
+private struct ShareImageItem: Identifiable {
+    let id = UUID()
+    let image: UIImage
+}
+
+private struct ActivityView: UIViewControllerRepresentable {
+    let items: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
 #Preview {
