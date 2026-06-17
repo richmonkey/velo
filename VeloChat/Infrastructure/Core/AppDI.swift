@@ -14,6 +14,7 @@ final class AppDI {
     let setupPushNotificationsUseCase: SetupPushNotificationsUseCase
     let syncPushSubscriptionsUseCase: SyncPushSubscriptionsUseCase
     let unreadCountRepository: UnreadCountRepositoryProtocol
+    let conversationNoteRepository: ConversationNoteRepositoryProtocol
 
     private init() {
         let keychain = KeychainService()
@@ -41,6 +42,7 @@ final class AppDI {
         syncPushSubscriptionsUseCase = DefaultSyncPushSubscriptionsUseCase(repository: pushRepository)
 
         unreadCountRepository = UnreadCountRepository()
+        conversationNoteRepository = ConversationNoteRepository()
     }
 
     @MainActor
@@ -55,7 +57,8 @@ final class AppDI {
             setupPushNotifications: setupPushNotificationsUseCase,
             syncPushSubscriptions: syncPushSubscriptionsUseCase,
             streamAllMessages: streamAllMessagesUseCase,
-            unreadCountStore: unreadCountRepository
+            unreadCountStore: unreadCountRepository,
+            noteRepository: conversationNoteRepository
         )
     }
 
@@ -70,14 +73,24 @@ final class AppDI {
     }
 
     @MainActor
-    func makeChatViewModel(conversationId: String, conversationTitle: String) -> ChatViewModel {
+    func makeChatViewModel(conversationId: String, conversationTitle: String, kind: ConversationSummary.Kind) -> ChatViewModel {
         ChatViewModel(
             conversationId: conversationId,
             conversationTitle: conversationTitle,
+            kind: kind,
             fetchMessages: fetchMessagesUseCase,
             sendMessage: sendMessageUseCase,
             streamMessages: streamMessagesUseCase,
-            unreadCountStore: unreadCountRepository
+            unreadCountStore: unreadCountRepository,
+            noteRepository: conversationNoteRepository
+        )
+    }
+
+    @MainActor
+    func makeConversationSettingsViewModel(conversationId: String) -> ConversationSettingsViewModel {
+        ConversationSettingsViewModel(
+            conversationId: conversationId,
+            noteRepository: conversationNoteRepository
         )
     }
 }

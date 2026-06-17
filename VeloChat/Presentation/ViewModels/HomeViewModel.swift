@@ -17,6 +17,7 @@ final class HomeViewModel: ObservableObject {
     private let syncPushSubscriptions: SyncPushSubscriptionsUseCase
     private let streamAllMessages: StreamAllMessagesUseCase
     private let unreadCountStore: UnreadCountRepositoryProtocol
+    private let noteRepository: ConversationNoteRepositoryProtocol
     private var streamTask: Task<Void, Never>?
 
     init(
@@ -24,13 +25,15 @@ final class HomeViewModel: ObservableObject {
         setupPushNotifications: SetupPushNotificationsUseCase,
         syncPushSubscriptions: SyncPushSubscriptionsUseCase,
         streamAllMessages: StreamAllMessagesUseCase,
-        unreadCountStore: UnreadCountRepositoryProtocol
+        unreadCountStore: UnreadCountRepositoryProtocol,
+        noteRepository: ConversationNoteRepositoryProtocol
     ) {
         self.fetchConversations = fetchConversations
         self.setupPushNotifications = setupPushNotifications
         self.syncPushSubscriptions = syncPushSubscriptions
         self.streamAllMessages = streamAllMessages
         self.unreadCountStore = unreadCountStore
+        self.noteRepository = noteRepository
     }
 
     func didLoad() {
@@ -68,7 +71,20 @@ final class HomeViewModel: ObservableObject {
 
     private func load() async {
         do {
-            let items = try await fetchConversations.execute()
+            let rawItems = try await fetchConversations.execute()
+            let notes = noteRepository.loadAll()
+            let items = rawItems.map { conversation -> ConversationSummary in
+                guard conversation.kind == .dm,
+                      let note = notes[conversation.id], !note.isEmpty
+                else { return conversation }
+                return ConversationSummary(
+                    id: conversation.id,
+                    kind: conversation.kind,
+                    title: note,
+                    lastMessagePreview: conversation.lastMessagePreview,
+                    lastActivityDate: conversation.lastActivityDate
+                )
+            }
             viewState = items.isEmpty ? .empty : .loaded(items)
             try? await syncPushSubscriptions.execute(conversationIds: items.map(\.id))
         } catch {

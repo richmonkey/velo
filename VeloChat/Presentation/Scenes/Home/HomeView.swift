@@ -37,7 +37,11 @@ struct HomeView: View {
                     })
                 }
                 .navigationDestination(for: ConversationSummary.self) { conversation in
-                    ChatView(conversationId: conversation.id, conversationTitle: conversation.title)
+                    ChatView(
+                        conversationId: conversation.id,
+                        conversationTitle: conversation.title,
+                        kind: conversation.kind
+                    )
                 }
         }
     }
@@ -63,6 +67,7 @@ struct HomeView: View {
             }
             .onAppear {
                 viewModel.refreshUnreadCounts()
+                Task { await viewModel.refresh() }
             }
         case .error(let message):
             errorState(message)

@@ -11,29 +11,42 @@ final class ChatViewModel: ObservableObject {
     @Published private(set) var viewState: ChatViewState = .loading
     @Published private(set) var isSending = false
 
-    let conversationTitle: String
+    let conversationId: String
+    @Published private(set) var conversationTitle: String
+    let kind: ConversationSummary.Kind
 
-    private let conversationId: String
+    private let defaultTitle: String
     private let fetchMessages: FetchMessagesUseCase
     private let sendMessage: SendMessageUseCase
     private let streamMessages: StreamMessagesUseCase
     private let unreadCountStore: UnreadCountRepositoryProtocol
+    private let noteRepository: ConversationNoteRepositoryProtocol
     private var streamTask: Task<Void, Never>?
 
     init(
         conversationId: String,
         conversationTitle: String,
+        kind: ConversationSummary.Kind,
         fetchMessages: FetchMessagesUseCase,
         sendMessage: SendMessageUseCase,
         streamMessages: StreamMessagesUseCase,
-        unreadCountStore: UnreadCountRepositoryProtocol
+        unreadCountStore: UnreadCountRepositoryProtocol,
+        noteRepository: ConversationNoteRepositoryProtocol
     ) {
         self.conversationId = conversationId
         self.conversationTitle = conversationTitle
+        self.defaultTitle = conversationTitle
+        self.kind = kind
         self.fetchMessages = fetchMessages
         self.sendMessage = sendMessage
         self.streamMessages = streamMessages
         self.unreadCountStore = unreadCountStore
+        self.noteRepository = noteRepository
+    }
+
+    func refreshTitle() {
+        let note = noteRepository.note(forConversationId: conversationId) ?? ""
+        conversationTitle = note.isEmpty ? defaultTitle : note
     }
 
     func didLoad() {

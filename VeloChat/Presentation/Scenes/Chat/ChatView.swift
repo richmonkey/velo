@@ -4,10 +4,11 @@ struct ChatView: View {
     @StateObject private var viewModel: ChatViewModel
     @State private var draft: String = ""
 
-    init(conversationId: String, conversationTitle: String) {
+    init(conversationId: String, conversationTitle: String, kind: ConversationSummary.Kind) {
         _viewModel = StateObject(wrappedValue: AppDI.shared.makeChatViewModel(
             conversationId: conversationId,
-            conversationTitle: conversationTitle
+            conversationTitle: conversationTitle,
+            kind: kind
         ))
     }
 
@@ -21,8 +22,22 @@ struct ChatView: View {
         .task {
             viewModel.didLoad()
         }
+        .onAppear {
+            viewModel.refreshTitle()
+        }
         .onDisappear {
             viewModel.stopStreaming()
+        }
+        .toolbar {
+            if viewModel.kind == .dm {
+                ToolbarItem(placement: .topBarTrailing) {
+                    NavigationLink {
+                        ConversationSettingsView(conversationId: viewModel.conversationId)
+                    } label: {
+                        Image(systemName: "info.circle")
+                    }
+                }
+            }
         }
     }
 
