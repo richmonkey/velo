@@ -199,7 +199,7 @@ final class XMTPConversationManager: XMTPConversationManaging {
                 do {
                     let client = try await self.clientManager.currentClient()
                     for try await message in await client.conversations.streamAllMessages() {
-                        continuation.yield(message.topic)
+                        continuation.yield(message.conversationId)
                     }
                     continuation.finish()
                 } catch {

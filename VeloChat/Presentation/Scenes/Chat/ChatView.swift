@@ -9,9 +9,14 @@ struct ChatView: View {
     @State private var showPhotoPicker = false
     @State private var showCamera = false
     @StateObject private var audioRecorder = AudioRecorder()
+    @FocusState private var isDraftFocused: Bool
 
     private var isCameraAvailable: Bool {
         UIImagePickerController.isSourceTypeAvailable(.camera)
+    }
+
+    private var canSendDraft: Bool {
+        !viewModel.isSending && !draft.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
     init(conversationId: String, conversationTitle: String, kind: ConversationSummary.Kind) {
@@ -105,6 +110,12 @@ struct ChatView: View {
                     }
                     .padding()
                 }
+                .onTapGesture { isDraftFocused = false }
+                .onAppear {
+                    if let lastId = messages.last?.id {
+                        proxy.scrollTo(lastId, anchor: .bottom)
+                    }
+                }
                 .onChange(of: messages.last?.id) { lastId in
                     guard let lastId else { return }
                     withAnimation {
@@ -138,18 +149,21 @@ struct ChatView: View {
                     Image(systemName: "plus.circle")
                 }
                 .disabled(viewModel.isSending)
-                Button {
-                    startRecording()
-                } label: {
-                    Image(systemName: "mic.circle")
-                }
-                .disabled(viewModel.isSending)
                 TextField("输入消息", text: $draft)
                     .textFieldStyle(.roundedBorder)
                     .disabled(viewModel.isSending)
+                    .focused($isDraftFocused)
                     .onSubmit(sendDraft)
-                Button("发送", action: sendDraft)
-                    .disabled(viewModel.isSending || draft.trimmingCharacters(in: .whitespaces).isEmpty)
+                if canSendDraft {
+                    Button("发送", action: sendDraft)
+                } else {
+                    Button {
+                        startRecording()
+                    } label: {
+                        Image(systemName: "mic.circle")
+                    }
+                    .disabled(viewModel.isSending)
+                }
             }
             .padding()
         }
