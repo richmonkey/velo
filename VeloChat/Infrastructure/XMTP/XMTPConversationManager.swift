@@ -24,6 +24,7 @@ struct ChatMessageInfo {
     let id: String
     let text: String
     let isFromMe: Bool
+    let isSystemNotice: Bool
     let sentAt: Date
 }
 
@@ -89,7 +90,8 @@ final class XMTPConversationManager: XMTPConversationManaging {
         }
         try await conversation.sync()
         let messages = try await conversation.messages(limit: 50, direction: .ascending)
-        return messages.map { map($0, currentInboxId: client.inboxID) }
+        let isGroup = Self.isGroup(conversation)
+        return messages.compactMap { map($0, currentInboxId: client.inboxID, isGroup: isGroup) }
     }
 
     func sendMessage(conversationId: String, text: String) async throws -> ChatMessageInfo {
@@ -98,7 +100,7 @@ final class XMTPConversationManager: XMTPConversationManaging {
             throw ConversationManagerError.conversationNotFound
         }
         let messageId = try await conversation.send(text: text)
-        return ChatMessageInfo(id: messageId, text: text, isFromMe: true, sentAt: Date())
+        return ChatMessageInfo(id: messageId, text: text, isFromMe: true, isSystemNotice: false, sentAt: Date())
     }
 
     func streamMessages(conversationId: String) -> AsyncThrowingStream<ChatMessageInfo, Error> {
@@ -110,8 +112,11 @@ final class XMTPConversationManager: XMTPConversationManaging {
                         continuation.finish(throwing: ConversationManagerError.conversationNotFound)
                         return
                     }
+                    let isGroup = Self.isGroup(conversation)
                     for try await message in conversation.streamMessages() {
-                        continuation.yield(self.map(message, currentInboxId: client.inboxID))
+                        if let info = self.map(message, currentInboxId: client.inboxID, isGroup: isGroup) {
+                            continuation.yield(info)
+                        }
                     }
                     continuation.finish()
                 } catch {
@@ -186,13 +191,58 @@ final class XMTPConversationManager: XMTPConversationManaging {
         try await group.updateDescription(description: announcement)
     }
 
-    private func map(_ message: DecodedMessage, currentInboxId: String) -> ChatMessageInfo {
-        ChatMessageInfo(
+    private func map(_ message: DecodedMessage, currentInboxId: String, isGroup: Bool) -> ChatMessageInfo? {
+        let contentType = try? message.encodedContent.type
+        if contentType == ContentTypeGroupUpdated {
+            guard isGroup, let update: GroupUpdated = try? message.content() else {
+                return nil
+            }
+            return ChatMessageInfo(
+                id: message.id,
+                text: Self.summarize(update),
+                isFromMe: message.senderInboxId == currentInboxId,
+                isSystemNotice: true,
+                sentAt: message.sentAt
+            )
+        }
+
+        return ChatMessageInfo(
             id: message.id,
             text: (try? message.body) ?? "",
             isFromMe: message.senderInboxId == currentInboxId,
+            isSystemNotice: false,
             sentAt: message.sentAt
         )
+    }
+
+    private static func isGroup(_ conversation: Conversation) -> Bool {
+        if case .group = conversation { return true }
+        return false
+    }
+
+    private static func summarize(_ update: GroupUpdated) -> String {
+        let actor = abbreviated(update.initiatedByInboxID)
+        var parts: [String] = []
+
+        for change in update.metadataFieldChanges {
+            let field = change.fieldName.lowercased()
+            if field.contains("desc") {
+                parts.append("\(actor) 更新了群公告")
+            } else if field.contains("name") {
+                parts.append("\(actor) 修改群名为「\(change.newValue)」")
+            }
+        }
+        if !update.addedInboxes.isEmpty {
+            parts.append("\(actor) 邀请了 \(update.addedInboxes.count) 位成员加入群聊")
+        }
+        if !update.removedInboxes.isEmpty {
+            parts.append("\(actor) 移除了 \(update.removedInboxes.count) 位成员")
+        }
+        if !update.leftInboxes.isEmpty {
+            parts.append("\(actor) 退出了群聊")
+        }
+
+        return parts.isEmpty ? "\(actor) 更新了群信息" : parts.joined(separator: "，")
     }
 
     private func summary(for conversation: Conversation) async throws -> ConversationSummaryInfo {

@@ -66,6 +66,7 @@ final class XMTPClientManager: XMTPClientManaging {
                 dbEncryptionKey: dbEncryptionKey
             )
         )
+        Client.register(codec: GroupUpdatedCodec())
 
         return ClientBundle(client: client, walletAddress: account.identity.identifier)
     }

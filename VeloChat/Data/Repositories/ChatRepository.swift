@@ -34,6 +34,12 @@ final class ChatRepository: ChatRepositoryProtocol {
     }
 
     private static func map(_ info: ChatMessageInfo) -> ChatMessage {
-        ChatMessage(id: info.id, text: info.text, isFromMe: info.isFromMe, sentAt: info.sentAt)
+        ChatMessage(
+            id: info.id,
+            text: info.text,
+            isFromMe: info.isFromMe,
+            isSystemNotice: info.isSystemNotice,
+            sentAt: info.sentAt
+        )
     }
 }

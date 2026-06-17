@@ -107,20 +107,31 @@ private struct MessageBubble: View {
     let message: ChatMessage
 
     var body: some View {
-        HStack {
-            if message.isFromMe { Spacer(minLength: 40) }
-            VStack(alignment: message.isFromMe ? .trailing : .leading, spacing: 2) {
-                Text(message.text)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(message.isFromMe ? Color.accentColor : Color(.systemGray5))
-                    .foregroundStyle(message.isFromMe ? .white : .primary)
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
-                Text(message.sentAt.formatted(date: .omitted, time: .shortened))
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+        if message.isSystemNotice {
+            Text(message.text)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Color(.systemGray6))
+                .clipShape(Capsule())
+                .frame(maxWidth: .infinity, alignment: .center)
+        } else {
+            HStack {
+                if message.isFromMe { Spacer(minLength: 40) }
+                VStack(alignment: message.isFromMe ? .trailing : .leading, spacing: 2) {
+                    Text(message.text)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(message.isFromMe ? Color.accentColor : Color(.systemGray5))
+                        .foregroundStyle(message.isFromMe ? .white : .primary)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                    Text(message.sentAt.formatted(date: .omitted, time: .shortened))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                if !message.isFromMe { Spacer(minLength: 40) }
             }
-            if !message.isFromMe { Spacer(minLength: 40) }
         }
     }
 }
