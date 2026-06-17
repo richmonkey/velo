@@ -4,6 +4,7 @@ struct HomeView: View {
     @StateObject private var viewModel = AppDI.shared.makeHomeViewModel()
     @State private var showingMe = false
     @State private var showingScan = false
+    @State private var showingCreateGroup = false
 
     var body: some View {
         NavigationStack {
@@ -21,8 +22,17 @@ struct HomeView: View {
                         }
                     }
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button {
-                            showingScan = true
+                        Menu {
+                            Button {
+                                showingScan = true
+                            } label: {
+                                Label("添加联系人", systemImage: "person.badge.plus")
+                            }
+                            Button {
+                                showingCreateGroup = true
+                            } label: {
+                                Label("创建群组", systemImage: "person.3")
+                            }
                         } label: {
                             Image(systemName: "plus")
                         }
@@ -35,6 +45,11 @@ struct HomeView: View {
                     ScanView(onConversationCreated: {
                         viewModel.didLoad()
                     })
+                }
+                .sheet(isPresented: $showingCreateGroup) {
+                    CreateGroupMembersView { _ in
+                        viewModel.didLoad()
+                    }
                 }
                 .navigationDestination(for: ConversationSummary.self) { conversation in
                     ChatView(

@@ -11,4 +11,5 @@ struct ConversationSummary: Identifiable, Hashable {
     let title: String
     let lastMessagePreview: String?
     let lastActivityDate: Date
+    let peerInboxId: String?   // DM 专属，群组为 nil
 }

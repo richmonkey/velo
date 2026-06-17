@@ -12,6 +12,7 @@ struct ConversationSummaryInfo {
     let title: String
     let lastMessagePreview: String?
     let lastActivityDate: Date
+    let peerInboxId: String?
 }
 
 struct ChatMessageInfo {
@@ -36,6 +37,7 @@ protocol XMTPConversationManaging {
     func sendMessage(conversationId: String, text: String) async throws -> ChatMessageInfo
     func streamMessages(conversationId: String) -> AsyncThrowingStream<ChatMessageInfo, Error>
     func streamAllMessages() -> AsyncThrowingStream<String, Error>
+    func createGroup(name: String, peerInboxIds: [String]) async throws -> ConversationSummaryInfo
     func pushTopics(forConversationIds conversationIds: [String]) async throws -> [String]
 }
 
@@ -124,6 +126,16 @@ final class XMTPConversationManager: XMTPConversationManaging {
         }
     }
 
+    func createGroup(name: String, peerInboxIds: [String]) async throws -> ConversationSummaryInfo {
+        let client = try await clientManager.currentClient()
+        let group = try await client.conversations.newGroup(
+            with: peerInboxIds,
+            permissions: .allMembers,
+            name: name
+        )
+        return try await summary(for: .group(group))
+    }
+
     func pushTopics(forConversationIds conversationIds: [String]) async throws -> [String] {
         let client = try await clientManager.currentClient()
         var topics: [String] = []
@@ -157,7 +169,8 @@ final class XMTPConversationManager: XMTPConversationManaging {
                 kind: .group,
                 title: (try? group.name()) ?? "群聊",
                 lastMessagePreview: preview,
-                lastActivityDate: date
+                lastActivityDate: date,
+                peerInboxId: nil
             )
         case .dm(let dm):
             let peer = (try? dm.peerInboxId) ?? "未知用户"
@@ -166,7 +179,8 @@ final class XMTPConversationManager: XMTPConversationManaging {
                 kind: .dm,
                 title: Self.abbreviated(peer),
                 lastMessagePreview: preview,
-                lastActivityDate: date
+                lastActivityDate: date,
+                peerInboxId: peer
             )
         }
     }

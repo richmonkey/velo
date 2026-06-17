@@ -15,13 +15,19 @@ final class ConversationRepository: ConversationRepositoryProtocol {
         return Self.map(info)
     }
 
+    func createGroup(name: String, peerInboxIds: [String]) async throws -> ConversationSummary {
+        let info = try await conversationManager.createGroup(name: name, peerInboxIds: peerInboxIds)
+        return Self.map(info)
+    }
+
     private static func map(_ info: ConversationSummaryInfo) -> ConversationSummary {
         ConversationSummary(
             id: info.id,
             kind: info.kind == .group ? .group : .dm,
             title: info.title,
             lastMessagePreview: info.lastMessagePreview,
-            lastActivityDate: info.lastActivityDate
+            lastActivityDate: info.lastActivityDate,
+            peerInboxId: info.peerInboxId
         )
     }
 }

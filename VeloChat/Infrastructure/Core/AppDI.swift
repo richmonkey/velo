@@ -10,6 +10,7 @@ final class AppDI {
     let sendMessageUseCase: SendMessageUseCase
     let streamMessagesUseCase: StreamMessagesUseCase
     let streamAllMessagesUseCase: StreamAllMessagesUseCase
+    let createGroupUseCase: CreateGroupUseCase
     let pushNotificationManager: PushNotificationManaging
     let setupPushNotificationsUseCase: SetupPushNotificationsUseCase
     let syncPushSubscriptionsUseCase: SyncPushSubscriptionsUseCase
@@ -33,6 +34,7 @@ final class AppDI {
         sendMessageUseCase = DefaultSendMessageUseCase(repository: chatRepository)
         streamMessagesUseCase = DefaultStreamMessagesUseCase(repository: chatRepository)
         streamAllMessagesUseCase = DefaultStreamAllMessagesUseCase(repository: chatRepository)
+        createGroupUseCase = DefaultCreateGroupUseCase(repository: conversationRepository)
 
         let pushManager = PushNotificationManager()
         pushManager.configure(pushServerHost: Self.pushServerHost)
@@ -83,6 +85,15 @@ final class AppDI {
             streamMessages: streamMessagesUseCase,
             unreadCountStore: unreadCountRepository,
             noteRepository: conversationNoteRepository
+        )
+    }
+
+    @MainActor
+    func makeCreateGroupViewModel() -> CreateGroupViewModel {
+        CreateGroupViewModel(
+            fetchConversations: fetchConversationsUseCase,
+            noteRepository: conversationNoteRepository,
+            createGroup: createGroupUseCase
         )
     }
 

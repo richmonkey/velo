@@ -82,7 +82,8 @@ final class HomeViewModel: ObservableObject {
                     kind: conversation.kind,
                     title: note,
                     lastMessagePreview: conversation.lastMessagePreview,
-                    lastActivityDate: conversation.lastActivityDate
+                    lastActivityDate: conversation.lastActivityDate,
+                    peerInboxId: conversation.peerInboxId
                 )
             }
             viewState = items.isEmpty ? .empty : .loaded(items)
