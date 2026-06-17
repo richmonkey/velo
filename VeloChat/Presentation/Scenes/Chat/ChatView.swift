@@ -1,8 +1,16 @@
 import SwiftUI
+import PhotosUI
 
 struct ChatView: View {
     @StateObject private var viewModel: ChatViewModel
     @State private var draft: String = ""
+    @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var showPhotoPicker = false
+    @State private var showCamera = false
+
+    private var isCameraAvailable: Bool {
+        UIImagePickerController.isSourceTypeAvailable(.camera)
+    }
 
     init(conversationId: String, conversationTitle: String, kind: ConversationSummary.Kind) {
         _viewModel = StateObject(wrappedValue: AppDI.shared.makeChatViewModel(
@@ -28,6 +36,22 @@ struct ChatView: View {
         .onDisappear {
             viewModel.stopStreaming()
         }
+        .onChange(of: selectedPhotoItem) { item in
+            guard let item else { return }
+            Task {
+                defer { selectedPhotoItem = nil }
+                guard let data = try? await item.loadTransferable(type: Data.self),
+                      let image = UIImage(data: data) else { return }
+                sendImage(image)
+            }
+        }
+        .sheet(isPresented: $showCamera) {
+            CameraCaptureView { image in
+                showCamera = false
+                if let image { sendImage(image) }
+            }
+        }
+        .photosPicker(isPresented: $showPhotoPicker, selection: $selectedPhotoItem, matching: .images)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 switch viewModel.kind {
@@ -86,6 +110,23 @@ struct ChatView: View {
 
     private var inputBar: some View {
         HStack {
+            Menu {
+                Button {
+                    showPhotoPicker = true
+                } label: {
+                    Label("从相册选择", systemImage: "photo")
+                }
+                if isCameraAvailable {
+                    Button {
+                        showCamera = true
+                    } label: {
+                        Label("拍照", systemImage: "camera")
+                    }
+                }
+            } label: {
+                Image(systemName: "plus.circle")
+            }
+            .disabled(viewModel.isSending)
             TextField("输入消息", text: $draft)
                 .textFieldStyle(.roundedBorder)
                 .disabled(viewModel.isSending)
@@ -100,6 +141,13 @@ struct ChatView: View {
         let text = draft
         draft = ""
         viewModel.send(text: text)
+    }
+
+    private func sendImage(_ image: UIImage) {
+        guard let data = ImageCompressor.compressedJPEGData(from: image) else {
+            return
+        }
+        viewModel.sendImage(data: data, filename: "image.jpg", mimeType: "image/jpeg")
     }
 }
 
@@ -127,12 +175,20 @@ private struct MessageBubble: View {
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
-                    Text(message.text)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(message.isFromMe ? Color.accentColor : Color(.systemGray5))
-                        .foregroundStyle(message.isFromMe ? .white : .primary)
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                    if let imageData = message.imageData, let uiImage = UIImage(data: imageData) {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(maxWidth: 220)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                    } else {
+                        Text(message.text)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(message.isFromMe ? Color.accentColor : Color(.systemGray5))
+                            .foregroundStyle(message.isFromMe ? .white : .primary)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                    }
                     Text(message.sentAt.formatted(date: .omitted, time: .shortened))
                         .font(.caption2)
                         .foregroundStyle(.secondary)

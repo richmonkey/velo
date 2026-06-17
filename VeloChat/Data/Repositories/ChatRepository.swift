@@ -1,3 +1,5 @@
+import Foundation
+
 final class ChatRepository: ChatRepositoryProtocol {
     private let conversationManager: XMTPConversationManaging
 
@@ -11,6 +13,10 @@ final class ChatRepository: ChatRepositoryProtocol {
 
     func sendMessage(conversationId: String, text: String) async throws -> ChatMessage {
         Self.map(try await conversationManager.sendMessage(conversationId: conversationId, text: text))
+    }
+
+    func sendImage(conversationId: String, imageData: Data, filename: String, mimeType: String) async throws -> ChatMessage {
+        Self.map(try await conversationManager.sendImage(conversationId: conversationId, imageData: imageData, filename: filename, mimeType: mimeType))
     }
 
     func streamMessages(conversationId: String) -> AsyncThrowingStream<ChatMessage, Error> {
@@ -41,6 +47,7 @@ final class ChatRepository: ChatRepositoryProtocol {
             isSystemNotice: info.isSystemNotice,
             senderInboxId: info.senderInboxId,
             nicknameUpdate: info.nicknameUpdate.map { ChatMessage.NicknameUpdate(inboxId: $0.inboxId, nickname: $0.nickname) },
+            imageData: info.imageData,
             sentAt: info.sentAt
         )
     }

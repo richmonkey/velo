@@ -38,6 +38,7 @@ struct ChatMessageInfo {
     let isSystemNotice: Bool
     let senderInboxId: String
     let nicknameUpdate: NicknameUpdateInfo?
+    let imageData: Data?
     let sentAt: Date
 }
 
@@ -60,6 +61,7 @@ protocol XMTPConversationManaging {
     func startConversation(peerInboxId: String) async throws -> ConversationSummaryInfo
     func fetchMessages(conversationId: String) async throws -> [ChatMessageInfo]
     func sendMessage(conversationId: String, text: String) async throws -> ChatMessageInfo
+    func sendImage(conversationId: String, imageData: Data, filename: String, mimeType: String) async throws -> ChatMessageInfo
     func streamMessages(conversationId: String) -> AsyncThrowingStream<ChatMessageInfo, Error>
     func streamAllMessages() -> AsyncThrowingStream<String, Error>
     func createGroup(name: String, peerInboxIds: [String]) async throws -> ConversationSummaryInfo
@@ -118,7 +120,26 @@ final class XMTPConversationManager: XMTPConversationManaging {
             throw ConversationManagerError.conversationNotFound
         }
         let messageId = try await conversation.send(text: text)
-        return ChatMessageInfo(id: messageId, text: text, isFromMe: true, isSystemNotice: false, senderInboxId: client.inboxID, nicknameUpdate: nil, sentAt: Date())
+        return ChatMessageInfo(id: messageId, text: text, isFromMe: true, isSystemNotice: false, senderInboxId: client.inboxID, nicknameUpdate: nil, imageData: nil, sentAt: Date())
+    }
+
+    func sendImage(conversationId: String, imageData: Data, filename: String, mimeType: String) async throws -> ChatMessageInfo {
+        let client = try await clientManager.currentClient()
+        guard let conversation = try await client.conversations.findConversation(conversationId: conversationId) else {
+            throw ConversationManagerError.conversationNotFound
+        }
+        let attachment = Attachment(filename: filename, mimeType: mimeType, data: imageData)
+        let messageId = try await conversation.send(content: attachment, options: SendOptions(contentType: ContentTypeAttachment))
+        return ChatMessageInfo(
+            id: messageId,
+            text: "",
+            isFromMe: true,
+            isSystemNotice: false,
+            senderInboxId: client.inboxID,
+            nicknameUpdate: nil,
+            imageData: imageData,
+            sentAt: Date()
+        )
     }
 
     func streamMessages(conversationId: String) -> AsyncThrowingStream<ChatMessageInfo, Error> {
@@ -260,6 +281,7 @@ final class XMTPConversationManager: XMTPConversationManaging {
                 isSystemNotice: true,
                 senderInboxId: message.senderInboxId,
                 nicknameUpdate: nil,
+                imageData: nil,
                 sentAt: message.sentAt
             )
         }
@@ -277,6 +299,32 @@ final class XMTPConversationManager: XMTPConversationManaging {
                 isSystemNotice: true,
                 senderInboxId: senderId,
                 nicknameUpdate: NicknameUpdateInfo(inboxId: senderId, nickname: nickname),
+                imageData: nil,
+                sentAt: message.sentAt
+            )
+        }
+
+        if contentType == ContentTypeAttachment {
+            guard let attachment: Attachment = try? message.content(), attachment.mimeType.hasPrefix("image/") else {
+                return ChatMessageInfo(
+                    id: message.id,
+                    text: (try? message.body) ?? "",
+                    isFromMe: message.senderInboxId == currentInboxId,
+                    isSystemNotice: false,
+                    senderInboxId: message.senderInboxId,
+                    nicknameUpdate: nil,
+                    imageData: nil,
+                    sentAt: message.sentAt
+                )
+            }
+            return ChatMessageInfo(
+                id: message.id,
+                text: "",
+                isFromMe: message.senderInboxId == currentInboxId,
+                isSystemNotice: false,
+                senderInboxId: message.senderInboxId,
+                nicknameUpdate: nil,
+                imageData: attachment.data,
                 sentAt: message.sentAt
             )
         }
@@ -288,6 +336,7 @@ final class XMTPConversationManager: XMTPConversationManaging {
             isSystemNotice: false,
             senderInboxId: message.senderInboxId,
             nicknameUpdate: nil,
+            imageData: nil,
             sentAt: message.sentAt
         )
     }
@@ -324,7 +373,12 @@ final class XMTPConversationManager: XMTPConversationManaging {
 
     private func summary(for conversation: Conversation) async throws -> ConversationSummaryInfo {
         let lastMessage = try? await conversation.lastMessage()
-        let preview = try? lastMessage?.body
+        let preview: String?
+        if let lastMessage, (try? lastMessage.encodedContent.type) == ContentTypeAttachment {
+            preview = "[图片]"
+        } else {
+            preview = try? lastMessage?.body
+        }
         let date = Date(timeIntervalSince1970: Double(conversation.lastActivityAtNs) / 1_000_000_000)
 
         switch conversation {

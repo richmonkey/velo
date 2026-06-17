@@ -20,6 +20,7 @@ final class ChatViewModel: ObservableObject {
     private let defaultTitle: String
     private let fetchMessages: FetchMessagesUseCase
     private let sendMessage: SendMessageUseCase
+    private let sendImageMessage: SendImageMessageUseCase
     private let streamMessages: StreamMessagesUseCase
     private let unreadCountStore: UnreadCountRepositoryProtocol
     private let noteRepository: ConversationNoteRepositoryProtocol
@@ -33,6 +34,7 @@ final class ChatViewModel: ObservableObject {
         kind: ConversationSummary.Kind,
         fetchMessages: FetchMessagesUseCase,
         sendMessage: SendMessageUseCase,
+        sendImageMessage: SendImageMessageUseCase,
         streamMessages: StreamMessagesUseCase,
         unreadCountStore: UnreadCountRepositoryProtocol,
         noteRepository: ConversationNoteRepositoryProtocol,
@@ -45,6 +47,7 @@ final class ChatViewModel: ObservableObject {
         self.kind = kind
         self.fetchMessages = fetchMessages
         self.sendMessage = sendMessage
+        self.sendImageMessage = sendImageMessage
         self.streamMessages = streamMessages
         self.unreadCountStore = unreadCountStore
         self.noteRepository = noteRepository
@@ -96,6 +99,19 @@ final class ChatViewModel: ObservableObject {
             defer { isSending = false }
             do {
                 let message = try await sendMessage.execute(conversationId: conversationId, text: trimmed)
+                appendIfNeeded(message)
+            } catch {
+                viewState = .error(error.localizedDescription)
+            }
+        }
+    }
+
+    func sendImage(data: Data, filename: String, mimeType: String) {
+        isSending = true
+        Task {
+            defer { isSending = false }
+            do {
+                let message = try await sendImageMessage.execute(conversationId: conversationId, imageData: data, filename: filename, mimeType: mimeType)
                 appendIfNeeded(message)
             } catch {
                 viewState = .error(error.localizedDescription)

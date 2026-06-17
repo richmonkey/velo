@@ -8,6 +8,7 @@ final class AppDI {
     let startConversationUseCase: StartConversationUseCase
     let fetchMessagesUseCase: FetchMessagesUseCase
     let sendMessageUseCase: SendMessageUseCase
+    let sendImageMessageUseCase: SendImageMessageUseCase
     let streamMessagesUseCase: StreamMessagesUseCase
     let streamAllMessagesUseCase: StreamAllMessagesUseCase
     let createGroupUseCase: CreateGroupUseCase
@@ -39,6 +40,7 @@ final class AppDI {
         let chatRepository = ChatRepository(conversationManager: conversationManager)
         fetchMessagesUseCase = DefaultFetchMessagesUseCase(repository: chatRepository)
         sendMessageUseCase = DefaultSendMessageUseCase(repository: chatRepository)
+        sendImageMessageUseCase = DefaultSendImageMessageUseCase(repository: chatRepository)
         streamMessagesUseCase = DefaultStreamMessagesUseCase(repository: chatRepository)
         streamAllMessagesUseCase = DefaultStreamAllMessagesUseCase(repository: chatRepository)
         createGroupUseCase = DefaultCreateGroupUseCase(repository: conversationRepository)
@@ -94,6 +96,7 @@ final class AppDI {
             kind: kind,
             fetchMessages: fetchMessagesUseCase,
             sendMessage: sendMessageUseCase,
+            sendImageMessage: sendImageMessageUseCase,
             streamMessages: streamMessagesUseCase,
             unreadCountStore: unreadCountRepository,
             noteRepository: conversationNoteRepository,

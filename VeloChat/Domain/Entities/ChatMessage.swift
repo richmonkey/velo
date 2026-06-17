@@ -12,5 +12,6 @@ struct ChatMessage: Identifiable, Equatable {
     let isSystemNotice: Bool
     let senderInboxId: String
     let nicknameUpdate: NicknameUpdate?
+    let imageData: Data?
     let sentAt: Date
 }
