@@ -1,5 +1,5 @@
 protocol FetchMessagesUseCase {
-    func execute(conversationId: String) async throws -> [ChatMessage]
+    func execute(conversationId: String, beforeNs: Int64?) async throws -> [ChatMessage]
 }
 
 final class DefaultFetchMessagesUseCase: FetchMessagesUseCase {
@@ -9,7 +9,7 @@ final class DefaultFetchMessagesUseCase: FetchMessagesUseCase {
         self.repository = repository
     }
 
-    func execute(conversationId: String) async throws -> [ChatMessage] {
-        try await repository.fetchMessages(conversationId: conversationId)
+    func execute(conversationId: String, beforeNs: Int64?) async throws -> [ChatMessage] {
+        try await repository.fetchMessages(conversationId: conversationId, beforeNs: beforeNs)
     }
 }

@@ -43,6 +43,7 @@ struct ChatMessageInfo {
     let audioData: Data?
     let audioDuration: TimeInterval?
     let sentAt: Date
+    let sentAtNs: Int64
 }
 
 enum ConversationManagerError: LocalizedError {
@@ -62,7 +63,7 @@ enum ConversationManagerError: LocalizedError {
 protocol XMTPConversationManaging {
     func fetchConversations() async throws -> [ConversationSummaryInfo]
     func startConversation(peerInboxId: String) async throws -> ConversationSummaryInfo
-    func fetchMessages(conversationId: String) async throws -> [ChatMessageInfo]
+    func fetchMessages(conversationId: String, beforeNs: Int64?) async throws -> [ChatMessageInfo]
     func sendMessage(conversationId: String, text: String) async throws -> ChatMessageInfo
     func sendImage(conversationId: String, imageData: Data, filename: String, mimeType: String) async throws -> ChatMessageInfo
     func sendVoiceMessage(conversationId: String, audioData: Data, filename: String, mimeType: String, duration: TimeInterval) async throws -> ChatMessageInfo
@@ -107,14 +108,19 @@ final class XMTPConversationManager: XMTPConversationManaging {
         return try await summary(for: conversation)
     }
 
-    func fetchMessages(conversationId: String) async throws -> [ChatMessageInfo] {
+    func fetchMessages(conversationId: String, beforeNs: Int64?) async throws -> [ChatMessageInfo] {
         let client = try await clientManager.currentClient()
         guard let conversation = try await client.conversations.findConversation(conversationId: conversationId) else {
             throw ConversationManagerError.conversationNotFound
         }
         try await conversation.sync()
-        let messages = try await conversation.messages(limit: 50, direction: .ascending)
         let isGroup = Self.isGroup(conversation)
+        let messages: [DecodedMessage]
+        if let beforeNs {
+            messages = Array(try await conversation.messages(limit: 15, beforeNs: beforeNs, direction: .descending).reversed())
+        } else {
+            messages = Array(try await conversation.messages(limit: 30, direction: .descending).reversed())
+        }
         return messages.compactMap { map($0, conversationId: conversationId, currentInboxId: client.inboxID, isGroup: isGroup) }
     }
 
@@ -124,7 +130,7 @@ final class XMTPConversationManager: XMTPConversationManaging {
             throw ConversationManagerError.conversationNotFound
         }
         let messageId = try await conversation.send(text: text)
-        return ChatMessageInfo(id: messageId, text: text, isFromMe: true, isSystemNotice: false, senderInboxId: client.inboxID, nicknameUpdate: nil, imageData: nil, audioData: nil, audioDuration: nil, sentAt: Date())
+        return ChatMessageInfo(id: messageId, text: text, isFromMe: true, isSystemNotice: false, senderInboxId: client.inboxID, nicknameUpdate: nil, imageData: nil, audioData: nil, audioDuration: nil, sentAt: Date(), sentAtNs: Int64(Date().timeIntervalSince1970 * 1_000_000_000))
     }
 
     func sendImage(conversationId: String, imageData: Data, filename: String, mimeType: String) async throws -> ChatMessageInfo {
@@ -144,7 +150,7 @@ final class XMTPConversationManager: XMTPConversationManaging {
             imageData: imageData,
             audioData: nil,
             audioDuration: nil,
-            sentAt: Date()
+            sentAt: Date(), sentAtNs: Int64(Date().timeIntervalSince1970 * 1_000_000_000)
         )
     }
 
@@ -165,7 +171,7 @@ final class XMTPConversationManager: XMTPConversationManaging {
             imageData: nil,
             audioData: audioData,
             audioDuration: duration,
-            sentAt: Date()
+            sentAt: Date(), sentAtNs: Int64(Date().timeIntervalSince1970 * 1_000_000_000)
         )
     }
 
@@ -311,7 +317,7 @@ final class XMTPConversationManager: XMTPConversationManaging {
                 imageData: nil,
                 audioData: nil,
                 audioDuration: nil,
-                sentAt: message.sentAt
+                sentAt: message.sentAt, sentAtNs: message.sentAtNs
             )
         }
 
@@ -331,7 +337,7 @@ final class XMTPConversationManager: XMTPConversationManaging {
                 imageData: nil,
                 audioData: nil,
                 audioDuration: nil,
-                sentAt: message.sentAt
+                sentAt: message.sentAt, sentAtNs: message.sentAtNs
             )
         }
 
@@ -347,7 +353,7 @@ final class XMTPConversationManager: XMTPConversationManaging {
                     imageData: nil,
                     audioData: nil,
                     audioDuration: nil,
-                    sentAt: message.sentAt
+                    sentAt: message.sentAt, sentAtNs: message.sentAtNs
                 )
             }
             if attachment.mimeType.hasPrefix("audio/") {
@@ -362,7 +368,7 @@ final class XMTPConversationManager: XMTPConversationManaging {
                     imageData: nil,
                     audioData: attachment.data,
                     audioDuration: duration,
-                    sentAt: message.sentAt
+                    sentAt: message.sentAt, sentAtNs: message.sentAtNs
                 )
             }
             guard attachment.mimeType.hasPrefix("image/") else {
@@ -376,7 +382,7 @@ final class XMTPConversationManager: XMTPConversationManaging {
                     imageData: nil,
                     audioData: nil,
                     audioDuration: nil,
-                    sentAt: message.sentAt
+                    sentAt: message.sentAt, sentAtNs: message.sentAtNs
                 )
             }
             return ChatMessageInfo(
@@ -389,7 +395,7 @@ final class XMTPConversationManager: XMTPConversationManaging {
                 imageData: attachment.data,
                 audioData: nil,
                 audioDuration: nil,
-                sentAt: message.sentAt
+                sentAt: message.sentAt, sentAtNs: message.sentAtNs
             )
         }
 
@@ -403,7 +409,7 @@ final class XMTPConversationManager: XMTPConversationManaging {
             imageData: nil,
             audioData: nil,
             audioDuration: nil,
-            sentAt: message.sentAt
+            sentAt: message.sentAt, sentAtNs: message.sentAtNs
         )
     }
 

@@ -16,4 +16,5 @@ struct ChatMessage: Identifiable, Equatable {
     let audioData: Data?
     let audioDuration: TimeInterval?
     let sentAt: Date
+    let sentAtNs: Int64
 }

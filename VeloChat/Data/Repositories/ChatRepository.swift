@@ -7,8 +7,8 @@ final class ChatRepository: ChatRepositoryProtocol {
         self.conversationManager = conversationManager
     }
 
-    func fetchMessages(conversationId: String) async throws -> [ChatMessage] {
-        try await conversationManager.fetchMessages(conversationId: conversationId).map(Self.map)
+    func fetchMessages(conversationId: String, beforeNs: Int64?) async throws -> [ChatMessage] {
+        try await conversationManager.fetchMessages(conversationId: conversationId, beforeNs: beforeNs).map(Self.map)
     }
 
     func sendMessage(conversationId: String, text: String) async throws -> ChatMessage {
@@ -54,7 +54,8 @@ final class ChatRepository: ChatRepositoryProtocol {
             imageData: info.imageData,
             audioData: info.audioData,
             audioDuration: info.audioDuration,
-            sentAt: info.sentAt
+            sentAt: info.sentAt,
+            sentAtNs: info.sentAtNs
         )
     }
 }

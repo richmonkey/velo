@@ -111,6 +111,13 @@ struct ChatView: View {
                     .padding()
                 }
                 .onTapGesture { isDraftFocused = false }
+                .refreshable {
+                    let anchorId = messages.first?.id
+                    await viewModel.loadMore()
+                    if let anchorId {
+                        proxy.scrollTo(anchorId, anchor: .top)
+                    }
+                }
                 .onAppear {
                     if let lastId = messages.last?.id {
                         proxy.scrollTo(lastId, anchor: .bottom)

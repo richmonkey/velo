@@ -1,7 +1,7 @@
 import Foundation
 
 protocol ChatRepositoryProtocol {
-    func fetchMessages(conversationId: String) async throws -> [ChatMessage]
+    func fetchMessages(conversationId: String, beforeNs: Int64?) async throws -> [ChatMessage]
     func sendMessage(conversationId: String, text: String) async throws -> ChatMessage
     func sendImage(conversationId: String, imageData: Data, filename: String, mimeType: String) async throws -> ChatMessage
     func sendVoiceMessage(conversationId: String, audioData: Data, filename: String, mimeType: String, duration: TimeInterval) async throws -> ChatMessage

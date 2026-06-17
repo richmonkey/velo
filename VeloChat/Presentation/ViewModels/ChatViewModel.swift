@@ -10,6 +10,8 @@ enum ChatViewState {
 final class ChatViewModel: ObservableObject {
     @Published private(set) var viewState: ChatViewState = .loading
     @Published private(set) var isSending = false
+    @Published private(set) var hasMoreHistory = true
+    private var isLoadingMore = false
 
     let conversationId: String
     @Published private(set) var conversationTitle: String
@@ -143,7 +145,7 @@ final class ChatViewModel: ObservableObject {
 
     private func load() async {
         do {
-            let messages = try await fetchMessages.execute(conversationId: conversationId)
+            let messages = try await fetchMessages.execute(conversationId: conversationId, beforeNs: nil)
             for message in messages {
                 if let update = message.nicknameUpdate {
                     nicknameByInboxId[update.inboxId] = update.nickname
@@ -152,6 +154,32 @@ final class ChatViewModel: ObservableObject {
             viewState = .loaded(messages)
         } catch {
             viewState = .error(error.localizedDescription)
+        }
+    }
+
+    func loadMore() async {
+        guard !isLoadingMore, hasMoreHistory,
+              case .loaded(let messages) = viewState,
+              let oldest = messages.first else { return }
+        isLoadingMore = true
+        defer { isLoadingMore = false }
+        do {
+            let older = try await fetchMessages.execute(conversationId: conversationId, beforeNs: oldest.sentAtNs)
+            guard !older.isEmpty else {
+                hasMoreHistory = false
+                return
+            }
+            for message in older {
+                if let update = message.nicknameUpdate {
+                    nicknameByInboxId[update.inboxId] = update.nickname
+                }
+            }
+            guard case .loaded(var current) = viewState else { return }
+            let existingIds = Set(current.map(\.id))
+            current.insert(contentsOf: older.filter { !existingIds.contains($0.id) }, at: 0)
+            viewState = .loaded(current)
+        } catch {
+            // Pagination failure is best-effort; keep showing what's already loaded.
         }
     }
 
