@@ -66,6 +66,7 @@ protocol XMTPConversationManaging {
     func pushTopics(forConversationIds conversationIds: [String]) async throws -> [String]
     func fetchGroupInfo(conversationId: String) async throws -> GroupInfoData
     func updateGroupAnnouncement(conversationId: String, announcement: String) async throws
+    func updateGroupName(conversationId: String, name: String) async throws
     func fetchGroupMembers(conversationId: String) async throws -> [GroupMemberInfo]
     func updateMyNickname(conversationId: String, nickname: String) async throws
 }
@@ -195,6 +196,17 @@ final class XMTPConversationManager: XMTPConversationManaging {
             name: (try? group.name()) ?? "群聊",
             announcement: (try? group.description()) ?? ""
         )
+    }
+
+    func updateGroupName(conversationId: String, name: String) async throws {
+        let client = try await clientManager.currentClient()
+        guard let conversation = try await client.conversations.findConversation(conversationId: conversationId) else {
+            throw ConversationManagerError.conversationNotFound
+        }
+        guard case .group(let group) = conversation else {
+            throw ConversationManagerError.notAGroup
+        }
+        try await group.updateName(name: name)
     }
 
     func updateGroupAnnouncement(conversationId: String, announcement: String) async throws {

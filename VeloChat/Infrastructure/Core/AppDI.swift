@@ -13,6 +13,7 @@ final class AppDI {
     let createGroupUseCase: CreateGroupUseCase
     let fetchGroupInfoUseCase: FetchGroupInfoUseCase
     let updateGroupAnnouncementUseCase: UpdateGroupAnnouncementUseCase
+    let updateGroupNameUseCase: UpdateGroupNameUseCase
     let fetchGroupMembersUseCase: FetchGroupMembersUseCase
     let updateMyNicknameUseCase: UpdateMyNicknameUseCase
     let pushNotificationManager: PushNotificationManaging
@@ -43,6 +44,7 @@ final class AppDI {
         createGroupUseCase = DefaultCreateGroupUseCase(repository: conversationRepository)
         fetchGroupInfoUseCase = DefaultFetchGroupInfoUseCase(repository: conversationRepository)
         updateGroupAnnouncementUseCase = DefaultUpdateGroupAnnouncementUseCase(repository: conversationRepository)
+        updateGroupNameUseCase = DefaultUpdateGroupNameUseCase(repository: conversationRepository)
         fetchGroupMembersUseCase = DefaultFetchGroupMembersUseCase(repository: conversationRepository)
         updateMyNicknameUseCase = DefaultUpdateMyNicknameUseCase(repository: conversationRepository)
 
@@ -95,7 +97,8 @@ final class AppDI {
             streamMessages: streamMessagesUseCase,
             unreadCountStore: unreadCountRepository,
             noteRepository: conversationNoteRepository,
-            fetchGroupMembers: fetchGroupMembersUseCase
+            fetchGroupMembers: fetchGroupMembersUseCase,
+            fetchGroupInfo: fetchGroupInfoUseCase
         )
     }
 
@@ -121,9 +124,34 @@ final class AppDI {
         GroupSettingsViewModel(
             conversationId: conversationId,
             fetchGroupInfo: fetchGroupInfoUseCase,
-            updateGroupAnnouncement: updateGroupAnnouncementUseCase,
+            fetchGroupMembers: fetchGroupMembersUseCase
+        )
+    }
+
+    @MainActor
+    func makeGroupAnnouncementEditViewModel(conversationId: String) -> GroupAnnouncementEditViewModel {
+        GroupAnnouncementEditViewModel(
+            conversationId: conversationId,
+            fetchGroupInfo: fetchGroupInfoUseCase,
+            updateGroupAnnouncement: updateGroupAnnouncementUseCase
+        )
+    }
+
+    @MainActor
+    func makeMyNicknameEditViewModel(conversationId: String) -> MyNicknameEditViewModel {
+        MyNicknameEditViewModel(
+            conversationId: conversationId,
             fetchGroupMembers: fetchGroupMembersUseCase,
             updateMyNickname: updateMyNicknameUseCase
+        )
+    }
+
+    @MainActor
+    func makeGroupNameEditViewModel(conversationId: String) -> GroupNameEditViewModel {
+        GroupNameEditViewModel(
+            conversationId: conversationId,
+            fetchGroupInfo: fetchGroupInfoUseCase,
+            updateGroupName: updateGroupNameUseCase
         )
     }
 }

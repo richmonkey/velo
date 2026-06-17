@@ -2,7 +2,6 @@ import SwiftUI
 
 struct GroupSettingsView: View {
     @StateObject private var viewModel: GroupSettingsViewModel
-    @Environment(\.dismiss) private var dismiss
 
     init(conversationId: String) {
         _viewModel = StateObject(
@@ -12,23 +11,41 @@ struct GroupSettingsView: View {
 
     var body: some View {
         Form {
-            Section("群名称") {
-                Text(viewModel.groupName)
-                    .foregroundStyle(.secondary)
-            }
-            Section("群公告") {
-                TextEditor(text: $viewModel.announcement)
-                    .frame(minHeight: 120)
-                    .autocorrectionDisabled()
-            }
-            Section("我的群昵称") {
-                HStack {
-                    TextField("设置你在本群的昵称", text: $viewModel.myNickname)
-                        .autocorrectionDisabled()
-                    Button("发送") {
-                        viewModel.saveMyNickname()
+            Section {
+                NavigationLink {
+                    GroupNameEditView(conversationId: viewModel.conversationId)
+                } label: {
+                    HStack {
+                        Text("群名称")
+                        Spacer()
+                        Text(viewModel.groupName)
+                            .foregroundStyle(.secondary)
                     }
-                    .disabled(viewModel.myNickname.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+            Section {
+                NavigationLink {
+                    GroupAnnouncementEditView(conversationId: viewModel.conversationId)
+                } label: {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("群公告")
+                        Text(viewModel.announcement.isEmpty ? "未设置" : viewModel.announcement)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+            }
+            Section {
+                NavigationLink {
+                    MyNicknameEditView(conversationId: viewModel.conversationId)
+                } label: {
+                    HStack {
+                        Text("我的群昵称")
+                        Spacer()
+                        Text(viewModel.myNickname.isEmpty ? "未设置" : viewModel.myNickname)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
             Section("群成员") {
@@ -47,16 +64,8 @@ struct GroupSettingsView: View {
         }
         .navigationTitle("群组设置")
         .navigationBarTitleDisplayMode(.inline)
-        .task {
-            await viewModel.didLoad()
-        }
-        .toolbar {
-            ToolbarItem(placement: .confirmationAction) {
-                Button("保存") {
-                    viewModel.save()
-                    dismiss()
-                }
-            }
+        .onAppear {
+            Task { await viewModel.didLoad() }
         }
         .alert("出错了", isPresented: alertBinding) {
             Button("好", role: .cancel) {}

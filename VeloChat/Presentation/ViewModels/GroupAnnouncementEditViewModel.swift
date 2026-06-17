@@ -1,30 +1,23 @@
 import Foundation
 
 @MainActor
-final class GroupSettingsViewModel: ObservableObject {
-    let conversationId: String
-
-    @Published private(set) var groupName: String = ""
-    @Published private(set) var announcement: String = ""
-    @Published private(set) var members: [GroupMember] = []
+final class GroupAnnouncementEditViewModel: ObservableObject {
+    @Published var announcement: String = ""
     @Published private(set) var isLoading = false
     @Published var errorMessage: String?
 
-    var myNickname: String {
-        members.first(where: \.isMe)?.nickname ?? ""
-    }
-
+    private let conversationId: String
     private let fetchGroupInfo: FetchGroupInfoUseCase
-    private let fetchGroupMembers: FetchGroupMembersUseCase
+    private let updateGroupAnnouncement: UpdateGroupAnnouncementUseCase
 
     init(
         conversationId: String,
         fetchGroupInfo: FetchGroupInfoUseCase,
-        fetchGroupMembers: FetchGroupMembersUseCase
+        updateGroupAnnouncement: UpdateGroupAnnouncementUseCase
     ) {
         self.conversationId = conversationId
         self.fetchGroupInfo = fetchGroupInfo
-        self.fetchGroupMembers = fetchGroupMembers
+        self.updateGroupAnnouncement = updateGroupAnnouncement
     }
 
     func didLoad() async {
@@ -32,11 +25,20 @@ final class GroupSettingsViewModel: ObservableObject {
         defer { isLoading = false }
         do {
             let info = try await fetchGroupInfo.execute(conversationId: conversationId)
-            groupName = info.name
             announcement = info.announcement
-            members = try await fetchGroupMembers.execute(conversationId: conversationId)
         } catch {
             errorMessage = error.localizedDescription
+        }
+    }
+
+    @discardableResult
+    func save() async -> Bool {
+        do {
+            try await updateGroupAnnouncement.execute(conversationId: conversationId, announcement: announcement)
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
         }
     }
 }

@@ -24,6 +24,7 @@ final class ChatViewModel: ObservableObject {
     private let unreadCountStore: UnreadCountRepositoryProtocol
     private let noteRepository: ConversationNoteRepositoryProtocol
     private let fetchGroupMembers: FetchGroupMembersUseCase
+    private let fetchGroupInfo: FetchGroupInfoUseCase
     private var streamTask: Task<Void, Never>?
 
     init(
@@ -35,7 +36,8 @@ final class ChatViewModel: ObservableObject {
         streamMessages: StreamMessagesUseCase,
         unreadCountStore: UnreadCountRepositoryProtocol,
         noteRepository: ConversationNoteRepositoryProtocol,
-        fetchGroupMembers: FetchGroupMembersUseCase
+        fetchGroupMembers: FetchGroupMembersUseCase,
+        fetchGroupInfo: FetchGroupInfoUseCase
     ) {
         self.conversationId = conversationId
         self.conversationTitle = conversationTitle
@@ -47,11 +49,25 @@ final class ChatViewModel: ObservableObject {
         self.unreadCountStore = unreadCountStore
         self.noteRepository = noteRepository
         self.fetchGroupMembers = fetchGroupMembers
+        self.fetchGroupInfo = fetchGroupInfo
     }
 
     func refreshTitle() {
+        if kind == .group {
+            Task { await refreshGroupTitle() }
+            return
+        }
         let note = noteRepository.note(forConversationId: conversationId) ?? ""
         conversationTitle = note.isEmpty ? defaultTitle : note
+    }
+
+    private func refreshGroupTitle() async {
+        do {
+            let info = try await fetchGroupInfo.execute(conversationId: conversationId)
+            conversationTitle = info.name
+        } catch {
+            // Best-effort: keep showing whatever title we already have.
+        }
     }
 
     func didLoad() {
