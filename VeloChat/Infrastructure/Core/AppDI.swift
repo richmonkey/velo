@@ -5,6 +5,7 @@ final class AppDI {
 
     let initializeXMTPClientUseCase: InitializeXMTPClientUseCase
     let fetchConversationsUseCase: FetchConversationsUseCase
+    let fetchConversationUseCase: FetchConversationUseCase
     let startConversationUseCase: StartConversationUseCase
     let fetchMessagesUseCase: FetchMessagesUseCase
     let sendMessageUseCase: SendMessageUseCase
@@ -37,6 +38,7 @@ final class AppDI {
         let conversationManager = XMTPConversationManager(clientManager: clientManager)
         let conversationRepository = ConversationRepository(conversationManager: conversationManager, memberNicknameStore: memberNicknameStore)
         fetchConversationsUseCase = DefaultFetchConversationsUseCase(repository: conversationRepository)
+        fetchConversationUseCase = DefaultFetchConversationUseCase(repository: conversationRepository)
         startConversationUseCase = DefaultStartConversationUseCase(repository: conversationRepository)
 
         let chatRepository = ChatRepository(conversationManager: conversationManager)
@@ -72,6 +74,7 @@ final class AppDI {
     func makeHomeViewModel() -> HomeViewModel {
         HomeViewModel(
             fetchConversations: fetchConversationsUseCase,
+            fetchConversation: fetchConversationUseCase,
             setupPushNotifications: setupPushNotificationsUseCase,
             syncPushSubscriptions: syncPushSubscriptionsUseCase,
             streamAllMessages: streamAllMessagesUseCase,

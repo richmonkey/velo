@@ -12,6 +12,13 @@ final class ConversationRepository: ConversationRepositoryProtocol {
         return infos.map(Self.map)
     }
 
+    func fetchConversation(conversationId: String) async throws -> ConversationSummary? {
+        guard let info = try await conversationManager.fetchConversation(conversationId: conversationId) else {
+            return nil
+        }
+        return Self.map(info)
+    }
+
     func startConversation(peerInboxId: String) async throws -> ConversationSummary {
         let info = try await conversationManager.startConversation(peerInboxId: peerInboxId)
         return Self.map(info)

@@ -13,6 +13,7 @@ final class HomeViewModel: ObservableObject {
     @Published private(set) var unreadCounts: [String: Int] = [:]
 
     private let fetchConversations: FetchConversationsUseCase
+    private let fetchConversation: FetchConversationUseCase
     private let setupPushNotifications: SetupPushNotificationsUseCase
     private let syncPushSubscriptions: SyncPushSubscriptionsUseCase
     private let streamAllMessages: StreamAllMessagesUseCase
@@ -23,6 +24,7 @@ final class HomeViewModel: ObservableObject {
 
     init(
         fetchConversations: FetchConversationsUseCase,
+        fetchConversation: FetchConversationUseCase,
         setupPushNotifications: SetupPushNotificationsUseCase,
         syncPushSubscriptions: SyncPushSubscriptionsUseCase,
         streamAllMessages: StreamAllMessagesUseCase,
@@ -31,6 +33,7 @@ final class HomeViewModel: ObservableObject {
         memberNicknameStore: MemberNicknameStoring
     ) {
         self.fetchConversations = fetchConversations
+        self.fetchConversation = fetchConversation
         self.setupPushNotifications = setupPushNotifications
         self.syncPushSubscriptions = syncPushSubscriptions
         self.streamAllMessages = streamAllMessages
@@ -69,7 +72,7 @@ final class HomeViewModel: ObservableObject {
                         unreadCountStore.increment(conversationId: event.conversationId)
                         unreadCounts = unreadCountStore.loadAll()
                     }
-                    await load()
+                    await updateConversation(event.conversationId)
                 }
             } catch {
                 // Stream is best-effort; manual refresh via pull-to-refresh still works.
@@ -81,29 +84,67 @@ final class HomeViewModel: ObservableObject {
         do {
             let rawItems = try await fetchConversations.execute()
             let notes = noteRepository.loadAll()
-            let items = rawItems.map { conversation -> ConversationSummary in
-                let title: String
-                if conversation.kind == .dm, let note = notes[conversation.id], !note.isEmpty {
-                    title = note
-                } else {
-                    title = conversation.title
-                }
-                return ConversationSummary(
-                    id: conversation.id,
-                    kind: conversation.kind,
-                    title: title,
-                    lastMessagePreview: resolvedPreview(for: conversation),
-                    lastActivityDate: conversation.lastActivityDate,
-                    peerInboxId: conversation.peerInboxId,
-                    lastMessageSenderInboxId: conversation.lastMessageSenderInboxId,
-                    lastMessageIsFromMe: conversation.lastMessageIsFromMe
-                )
+            let items = rawItems.map { conversation in
+                resolvedSummary(for: conversation, title: resolvedTitle(for: conversation, note: notes[conversation.id]))
             }
             viewState = items.isEmpty ? .empty : .loaded(items)
             try? await syncPushSubscriptions.execute(conversationIds: items.map(\.id))
         } catch {
             viewState = .error(error.localizedDescription)
         }
+    }
+
+    private func updateConversation(_ conversationId: String) async {
+        guard case .loaded(var items) = viewState else {
+            await load()
+            return
+        }
+
+        do {
+            guard let fetched = try await fetchConversation.execute(conversationId: conversationId) else {
+                if let index = items.firstIndex(where: { $0.id == conversationId }) {
+                    items.remove(at: index)
+                    viewState = items.isEmpty ? .empty : .loaded(items)
+                    try? await syncPushSubscriptions.execute(conversationIds: items.map(\.id))
+                }
+                return
+            }
+
+            let note = noteRepository.note(forConversationId: conversationId)
+            let resolved = resolvedSummary(for: fetched, title: resolvedTitle(for: fetched, note: note))
+
+            if let index = items.firstIndex(where: { $0.id == conversationId }) {
+                items[index] = resolved
+            } else {
+                items.append(resolved)
+            }
+            items.sort { $0.lastActivityDate > $1.lastActivityDate }
+
+            viewState = .loaded(items)
+            try? await syncPushSubscriptions.execute(conversationIds: items.map(\.id))
+        } catch {
+            // Best-effort: leave the existing viewState untouched on a transient single-conversation fetch failure.
+        }
+    }
+
+    private func resolvedSummary(for conversation: ConversationSummary, title: String) -> ConversationSummary {
+        ConversationSummary(
+            id: conversation.id,
+            kind: conversation.kind,
+            title: title,
+            lastMessagePreview: resolvedPreview(for: conversation),
+            lastActivityDate: conversation.lastActivityDate,
+            peerInboxId: conversation.peerInboxId,
+            lastMessageSenderInboxId: conversation.lastMessageSenderInboxId,
+            lastMessageIsFromMe: conversation.lastMessageIsFromMe
+        )
+    }
+
+    private func resolvedTitle(for conversation: ConversationSummary, note: String?) -> String {
+        if conversation.kind == .dm, let note, !note.isEmpty {
+            return note
+        }
+        return conversation.title
     }
 
     private func resolvedPreview(for conversation: ConversationSummary) -> String? {

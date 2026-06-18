@@ -10,8 +10,10 @@ protocol PushNotificationManaging {
 
 /// Thin wrapper around XMTPiOS's bundled `XMTPPush` helper, which already speaks
 /// the `notifications.v1.Notifications` service described in http-api.md.
-final class PushNotificationManager: PushNotificationManaging {
-    func configure(pushServerHost: String) {
+actor PushNotificationManager: PushNotificationManaging {
+    private var subscribedTopics: Set<String> = []
+
+    nonisolated func configure(pushServerHost: String) {
         XMTPPush.shared.setPushServer(pushServerHost)
     }
 
@@ -31,6 +33,9 @@ final class PushNotificationManager: PushNotificationManaging {
     }
 
     func subscribe(topics: [String]) async throws {
-        try await XMTPPush.shared.subscribe(topics: topics)
+        let newTopics = topics.filter { !subscribedTopics.contains($0) }
+        guard !newTopics.isEmpty else { return }
+        try await XMTPPush.shared.subscribe(topics: newTopics)
+        subscribedTopics.formUnion(newTopics)
     }
 }
