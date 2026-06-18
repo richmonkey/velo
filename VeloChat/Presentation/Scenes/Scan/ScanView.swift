@@ -14,7 +14,6 @@ private struct QRScannerRepresentable: UIViewControllerRepresentable {
 
 struct ScanView: View {
     @StateObject private var viewModel = AppDI.shared.makeScanViewModel()
-    @State private var manualInboxId: String = ""
     @Environment(\.dismiss) private var dismiss
 
     /// Called once a conversation has been created, so the presenting
@@ -35,24 +34,11 @@ struct ScanView: View {
                     }
                 }
 
-                Form {
-                    Section("手动添加") {
-                        TextField("对方的 Inbox ID", text: $manualInboxId)
-                            .textInputAutocapitalization(.never)
-                            .disableAutocorrection(true)
-                        Button("添加") {
-                            viewModel.submit(peerInboxId: manualInboxId)
-                        }
-                        .disabled(manualInboxId.trimmingCharacters(in: .whitespaces).isEmpty)
-                    }
-
-                    if case .error(let message) = viewModel.viewState {
-                        Section {
-                            Text(message)
-                                .foregroundStyle(.red)
-                                .font(.caption)
-                        }
-                    }
+                if case .error(let message) = viewModel.viewState {
+                    Text(message)
+                        .foregroundStyle(.red)
+                        .font(.caption)
+                        .padding()
                 }
             }
             .navigationTitle("添加联系人")
