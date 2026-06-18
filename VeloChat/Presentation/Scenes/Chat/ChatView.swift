@@ -173,12 +173,16 @@ struct ChatView: View {
                     .onSubmit(sendDraft)
                 if canSendDraft {
                     Button("Send", action: sendDraft)
+                        .buttonStyle(.pressable)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(Color.brandPrimary)
                 } else {
                     Button {
                         startRecording()
                     } label: {
                         Image(systemName: "mic.circle")
                     }
+                    .buttonStyle(.pressable)
                     .disabled(viewModel.isSending)
                 }
             }
@@ -191,13 +195,17 @@ struct ChatView: View {
             Button("Cancel") {
                 audioRecorder.cancelRecording()
             }
+            .buttonStyle(.pressable)
             Spacer()
             Text("Recording \(formattedDuration(audioRecorder.elapsed))")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.textSecondary)
             Spacer()
             Button("Done") {
                 finishRecording()
             }
+            .buttonStyle(.pressable)
+            .fontWeight(.semibold)
+            .foregroundStyle(Color.brandPrimary)
         }
         .padding()
     }
@@ -330,10 +338,10 @@ private struct MessageBubble: View {
             let actorName = message.isFromMe ? "Me" : nameResolver(message.senderInboxId)
             Text(message.text.replacingOccurrences(of: "{{actor}}", with: actorName))
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.textSecondary)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
-                .background(Color(.systemGray6))
+                .background(Color.systemPillBackground)
                 .clipShape(Capsule())
                 .frame(maxWidth: .infinity, alignment: .center)
         } else {
@@ -358,8 +366,8 @@ private struct MessageBubble: View {
                         Text(message.text)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
-                            .background(message.isFromMe ? Color.accentColor : Color(.systemGray5))
-                            .foregroundStyle(message.isFromMe ? .white : .primary)
+                            .background(message.isFromMe ? Color.bubbleSelf : Color.bubbleOther)
+                            .foregroundStyle(message.isFromMe ? .white : Color.textPrimary)
                             .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
                     Text(message.sentAt.formatted(date: .omitted, time: .shortened))
@@ -422,8 +430,8 @@ private struct VoiceMessageBubble: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .background(isFromMe ? Color.accentColor : Color(.systemGray5))
-            .foregroundStyle(isFromMe ? .white : .primary)
+            .background(isFromMe ? Color.bubbleSelf : Color.bubbleOther)
+            .foregroundStyle(isFromMe ? .white : Color.textPrimary)
             .clipShape(RoundedRectangle(cornerRadius: 14))
         }
         .buttonStyle(.plain)

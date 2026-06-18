@@ -141,7 +141,7 @@ private struct ConversationRow: View {
                     .foregroundStyle(.white)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 3)
-                    .background(Color.red, in: Capsule())
+                    .background(Color.unreadBadge, in: Capsule())
             }
         }
         .padding(.vertical, 4)

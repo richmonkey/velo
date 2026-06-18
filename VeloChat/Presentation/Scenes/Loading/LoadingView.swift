@@ -8,27 +8,31 @@ struct LoadingView: View {
             switch viewModel.viewState {
             case .loading:
                 ProgressView()
+                    .tint(Color.brandPrimary)
                 Text("Initializing XMTP...")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.textSecondary)
             case .ready(let identity):
                 Image(systemName: "checkmark.circle.fill")
                     .font(.largeTitle)
                     .foregroundStyle(.green)
                 Text("XMTP Ready")
+                    .foregroundStyle(Color.textPrimary)
                 Text(identity.inboxId)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.textSecondary)
             case .error(let message):
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.largeTitle)
                     .foregroundStyle(.red)
                 Text("Initialization Failed")
+                    .foregroundStyle(Color.textPrimary)
                 Text(message)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.textSecondary)
             }
         }
         .padding()
+        .background(Color.cardBackground.ignoresSafeArea())
         .task {
             viewModel.didLoad()
         }

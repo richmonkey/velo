@@ -3,6 +3,7 @@ import UIKit
 
 struct MeView: View {
     @StateObject private var viewModel = AppDI.shared.makeMeViewModel()
+    @ObservedObject private var themeManager = AppDI.shared.themeManager
     @State private var showingScan = false
     @State private var shareItem: ShareImageItem?
 
@@ -14,6 +15,13 @@ struct MeView: View {
                     viewModel.didLoad()
                 }
                 .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        NavigationLink {
+                            SettingsView()
+                        } label: {
+                            Image(systemName: "gearshape")
+                        }
+                    }
                     ToolbarItem(placement: .topBarTrailing) {
                         if case .loaded(let identity) = viewModel.viewState {
                             Button {
@@ -34,6 +42,7 @@ struct MeView: View {
                         .presentationDetents([.medium, .large])
                 }
         }
+        .preferredColorScheme(themeManager.colorScheme)
     }
 
     @ViewBuilder
@@ -82,8 +91,13 @@ struct MeView: View {
             } label: {
                 Label("Scan QR Code", systemImage: "qrcode.viewfinder")
                     .frame(maxWidth: .infinity)
+                    .padding(.vertical, 4)
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(.pressable)
+            .font(.system(size: 17, weight: .semibold))
+            .foregroundStyle(.white)
+            .padding(.vertical, 10)
+            .background(Color.brandPrimary, in: RoundedRectangle(cornerRadius: 14))
             .padding(.horizontal)
             .padding(.bottom)
         }
