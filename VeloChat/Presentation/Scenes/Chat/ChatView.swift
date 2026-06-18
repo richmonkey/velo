@@ -148,7 +148,7 @@ struct ChatView: View {
         if audioRecorder.isRecording {
             recordingBar
         } else {
-            HStack {
+            HStack(spacing: 10) {
                 Menu {
                     Button {
                         showPhotoPicker = true
@@ -163,30 +163,44 @@ struct ChatView: View {
                         }
                     }
                 } label: {
-                    Image(systemName: "plus.circle")
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 30))
+                        .foregroundStyle(Color.brandPrimary)
                 }
+                .buttonStyle(.pressable)
                 .disabled(viewModel.isSending)
-                TextField("Message", text: $draft)
-                    .textFieldStyle(.roundedBorder)
+
+                TextField("Message", text: $draft, axis: .vertical)
+                    .font(.system(size: 16))
+                    .lineLimit(1...4)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(Color.bubbleOther, in: RoundedRectangle(cornerRadius: 20))
                     .disabled(viewModel.isSending)
                     .focused($isDraftFocused)
                     .onSubmit(sendDraft)
+
                 if canSendDraft {
-                    Button("Send", action: sendDraft)
-                        .buttonStyle(.pressable)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(Color.brandPrimary)
+                    Button(action: sendDraft) {
+                        Image(systemName: "paperplane.circle.fill")
+                            .font(.system(size: 30))
+                            .foregroundStyle(Color.brandPrimary)
+                    }
+                    .buttonStyle(.pressable)
                 } else {
                     Button {
                         startRecording()
                     } label: {
-                        Image(systemName: "mic.circle")
+                        Image(systemName: "mic.circle.fill")
+                            .font(.system(size: 30))
+                            .foregroundStyle(Color.brandPrimary)
                     }
                     .buttonStyle(.pressable)
                     .disabled(viewModel.isSending)
                 }
             }
-            .padding()
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
         }
     }
 
@@ -309,14 +323,39 @@ private struct FullScreenImageView: View {
     }
 
     var body: some View {
-        ZStack(alignment: .bottom) {
+        ZStack {
             Color.black.ignoresSafeArea()
+
             if let originalImage {
                 Image(uiImage: originalImage)
                     .resizable()
                     .scaledToFit()
                     .scaleEffect(scale)
                     .offset(offset)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.largeTitle)
+                    .foregroundStyle(.white.opacity(0.7))
+            }
+
+            VStack {
+                HStack {
+                    Spacer()
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .padding(10)
+                            .background(.black.opacity(0.5), in: Circle())
+                    }
+                    .buttonStyle(.pressable)
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                Spacer()
             }
         }
         .contentShape(Rectangle())
