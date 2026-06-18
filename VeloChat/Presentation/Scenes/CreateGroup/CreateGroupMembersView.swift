@@ -18,7 +18,7 @@ struct CreateGroupMembersView: View {
                     ProgressView()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if viewModel.contacts.isEmpty {
-                    Text("暂无联系人")
+                    Text("No contacts yet")
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
@@ -39,14 +39,14 @@ struct CreateGroupMembersView: View {
                     }
                 }
             }
-            .navigationTitle("选择成员")
+            .navigationTitle("Select Members")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
+                    Button("Cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    NavigationLink("下一步") {
+                    NavigationLink("Next") {
                         CreateGroupNameView(viewModel: viewModel, onGroupCreated: { conversation in
                             onGroupCreated(conversation)
                             dismiss()

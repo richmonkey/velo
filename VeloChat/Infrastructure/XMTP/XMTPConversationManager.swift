@@ -60,9 +60,9 @@ enum ConversationManagerError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .conversationNotFound:
-            return "未找到该会话"
+            return "Conversation not found"
         case .notAGroup:
-            return "该会话不是群组"
+            return "This conversation is not a group"
         }
     }
 }
@@ -268,7 +268,7 @@ final class XMTPConversationManager: XMTPConversationManaging {
             throw ConversationManagerError.notAGroup
         }
         return GroupInfoData(
-            name: (try? group.name()) ?? "群聊",
+            name: (try? group.name()) ?? "Group Chat",
             announcement: (try? group.description()) ?? ""
         )
     }
@@ -348,7 +348,7 @@ final class XMTPConversationManager: XMTPConversationManaging {
             let senderId = message.senderInboxId
             return ChatMessageInfo(
                 id: message.id,
-                text: "\(Self.actorPlaceholder) 设置了群昵称「\(nickname)」",
+                text: "\(Self.actorPlaceholder) set their group nickname to \u{201c}\(nickname)\u{201d}",
                 isFromMe: senderId == currentInboxId,
                 isSystemNotice: true,
                 senderInboxId: senderId,
@@ -449,22 +449,22 @@ final class XMTPConversationManager: XMTPConversationManaging {
         for change in update.metadataFieldChanges {
             let field = change.fieldName.lowercased()
             if field.contains("desc") {
-                parts.append("\(actor) 更新了群公告")
+                parts.append("\(actor) updated the group announcement")
             } else if field.contains("name") {
-                parts.append("\(actor) 修改群名为「\(change.newValue)」")
+                parts.append("\(actor) changed the group name to \u{201c}\(change.newValue)\u{201d}")
             }
         }
         if !update.addedInboxes.isEmpty {
-            parts.append("\(actor) 邀请了 \(update.addedInboxes.count) 位成员加入群聊")
+            parts.append("\(actor) added \(update.addedInboxes.count) member(s) to the group")
         }
         if !update.removedInboxes.isEmpty {
-            parts.append("\(actor) 移除了 \(update.removedInboxes.count) 位成员")
+            parts.append("\(actor) removed \(update.removedInboxes.count) member(s)")
         }
         if !update.leftInboxes.isEmpty {
-            parts.append("\(actor) 退出了群聊")
+            parts.append("\(actor) left the group")
         }
 
-        return parts.isEmpty ? "\(actor) 更新了群信息" : parts.joined(separator: "，")
+        return parts.isEmpty ? "\(actor) updated the group info" : parts.joined(separator: ", ")
     }
 
     private func summary(for conversation: Conversation, currentInboxId: String) async throws -> ConversationSummaryInfo {
@@ -473,7 +473,7 @@ final class XMTPConversationManager: XMTPConversationManaging {
         let preview: String?
         if let lastMessage, contentType == ContentTypeAttachment,
            let attachment: Attachment = try? lastMessage.content() {
-            preview = attachment.mimeType.hasPrefix("audio/") ? "[语音]" : "[图片]"
+            preview = attachment.mimeType.hasPrefix("audio/") ? "[Voice]" : "[Image]"
         } else if let lastMessage, contentType == ContentTypeGroupUpdated,
                   let update: GroupUpdated = try? lastMessage.content() {
             preview = Self.summarize(update)
@@ -489,7 +489,7 @@ final class XMTPConversationManager: XMTPConversationManaging {
             return ConversationSummaryInfo(
                 id: conversation.id,
                 kind: .group,
-                title: (try? group.name()) ?? "群聊",
+                title: (try? group.name()) ?? "Group Chat",
                 lastMessagePreview: preview,
                 lastActivityDate: date,
                 peerInboxId: nil,
@@ -497,7 +497,7 @@ final class XMTPConversationManager: XMTPConversationManaging {
                 lastMessageIsFromMe: isFromMe
             )
         case .dm(let dm):
-            let peer = (try? dm.peerInboxId) ?? "未知用户"
+            let peer = (try? dm.peerInboxId) ?? "Unknown User"
             return ConversationSummaryInfo(
                 id: conversation.id,
                 kind: .dm,

@@ -41,10 +41,10 @@ struct ScanView: View {
                         .padding()
                 }
             }
-            .navigationTitle("添加联系人")
+            .navigationTitle("Add Contact")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
+                    Button("Cancel") { dismiss() }
                 }
             }
             .onChange(of: viewModel.viewState) { newValue in

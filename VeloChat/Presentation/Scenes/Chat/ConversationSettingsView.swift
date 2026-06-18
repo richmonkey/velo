@@ -12,16 +12,16 @@ struct ConversationSettingsView: View {
 
     var body: some View {
         Form {
-            Section("备注") {
-                TextField("为此联系人添加备注", text: $viewModel.note)
+            Section("Note") {
+                TextField("Add a note for this contact", text: $viewModel.note)
                     .autocorrectionDisabled()
             }
         }
-        .navigationTitle("会话设置")
+        .navigationTitle("Conversation Settings")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
-                Button("保存") {
+                Button("Save") {
                     viewModel.save()
                     dismiss()
                 }

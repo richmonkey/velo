@@ -8,13 +8,13 @@ struct LoadingView: View {
             switch viewModel.viewState {
             case .loading:
                 ProgressView()
-                Text("正在初始化 XMTP...")
+                Text("Initializing XMTP...")
                     .foregroundStyle(.secondary)
             case .ready(let identity):
                 Image(systemName: "checkmark.circle.fill")
                     .font(.largeTitle)
                     .foregroundStyle(.green)
-                Text("XMTP 已就绪")
+                Text("XMTP Ready")
                 Text(identity.inboxId)
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -22,7 +22,7 @@ struct LoadingView: View {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.largeTitle)
                     .foregroundStyle(.red)
-                Text("初始化失败")
+                Text("Initialization Failed")
                 Text(message)
                     .font(.caption)
                     .foregroundStyle(.secondary)

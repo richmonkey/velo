@@ -9,7 +9,7 @@ struct MeView: View {
     var body: some View {
         NavigationStack {
             content
-                .navigationTitle("我的")
+                .navigationTitle("Me")
                 .task {
                     viewModel.didLoad()
                 }
@@ -58,7 +58,7 @@ struct MeView: View {
 
     private func identityView(_ identity: XMTPIdentity) -> some View {
         VStack(spacing: 20) {
-            Text("让对方扫描这个二维码即可添加你")
+            Text("Let others scan this QR code to add you")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
 
@@ -80,7 +80,7 @@ struct MeView: View {
             Button {
                 showingScan = true
             } label: {
-                Label("扫描二维码", systemImage: "qrcode.viewfinder")
+                Label("Scan QR Code", systemImage: "qrcode.viewfinder")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)

@@ -153,26 +153,26 @@ struct ChatView: View {
                     Button {
                         showPhotoPicker = true
                     } label: {
-                        Label("从相册选择", systemImage: "photo")
+                        Label("Choose from Library", systemImage: "photo")
                     }
                     if isCameraAvailable {
                         Button {
                             showCamera = true
                         } label: {
-                            Label("拍照", systemImage: "camera")
+                            Label("Take Photo", systemImage: "camera")
                         }
                     }
                 } label: {
                     Image(systemName: "plus.circle")
                 }
                 .disabled(viewModel.isSending)
-                TextField("输入消息", text: $draft)
+                TextField("Message", text: $draft)
                     .textFieldStyle(.roundedBorder)
                     .disabled(viewModel.isSending)
                     .focused($isDraftFocused)
                     .onSubmit(sendDraft)
                 if canSendDraft {
-                    Button("发送", action: sendDraft)
+                    Button("Send", action: sendDraft)
                 } else {
                     Button {
                         startRecording()
@@ -188,14 +188,14 @@ struct ChatView: View {
 
     private var recordingBar: some View {
         HStack {
-            Button("取消") {
+            Button("Cancel") {
                 audioRecorder.cancelRecording()
             }
             Spacer()
-            Text("录音中 \(formattedDuration(audioRecorder.elapsed))")
+            Text("Recording \(formattedDuration(audioRecorder.elapsed))")
                 .foregroundStyle(.secondary)
             Spacer()
-            Button("完成") {
+            Button("Done") {
                 finishRecording()
             }
         }
@@ -327,7 +327,7 @@ private struct MessageBubble: View {
 
     var body: some View {
         if message.isSystemNotice {
-            let actorName = message.isFromMe ? "我" : nameResolver(message.senderInboxId)
+            let actorName = message.isFromMe ? "Me" : nameResolver(message.senderInboxId)
             Text(message.text.replacingOccurrences(of: "{{actor}}", with: actorName))
                 .font(.caption)
                 .foregroundStyle(.secondary)

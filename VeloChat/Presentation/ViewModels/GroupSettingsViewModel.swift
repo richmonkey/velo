@@ -31,7 +31,7 @@ final class GroupSettingsViewModel: ObservableObject {
     }
 
     func displayName(for member: GroupMember) -> String {
-        if member.isMe { return "我" }
+        if member.isMe { return "Me" }
         if let nickname = member.nickname, !nickname.isEmpty { return nickname }
         if let note = noteRepository.note(forInboxId: member.id), !note.isEmpty { return note }
         guard member.id.count > 10 else { return member.id }

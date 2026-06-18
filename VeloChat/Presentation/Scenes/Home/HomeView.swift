@@ -9,7 +9,7 @@ struct HomeView: View {
     var body: some View {
         NavigationStack {
             content
-                .navigationTitle("会话")
+                .navigationTitle("Chats")
                 .task {
                     viewModel.didLoad()
                 }
@@ -26,12 +26,12 @@ struct HomeView: View {
                             Button {
                                 showingScan = true
                             } label: {
-                                Label("添加联系人", systemImage: "person.badge.plus")
+                                Label("Add Contact", systemImage: "person.badge.plus")
                             }
                             Button {
                                 showingCreateGroup = true
                             } label: {
-                                Label("创建群组", systemImage: "person.3")
+                                Label("Create Group", systemImage: "person.3")
                             }
                         } label: {
                             Image(systemName: "plus")
@@ -95,7 +95,7 @@ struct HomeView: View {
             Image(systemName: "bubble.left.and.bubble.right")
                 .font(.largeTitle)
                 .foregroundStyle(.secondary)
-            Text("暂无会话")
+            Text("No conversations yet")
                 .foregroundStyle(.secondary)
         }
     }
@@ -105,11 +105,11 @@ struct HomeView: View {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.largeTitle)
                 .foregroundStyle(.red)
-            Text("加载会话失败")
+            Text("Failed to load conversations")
             Text(message)
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            Button("重试") {
+            Button("Retry") {
                 viewModel.didLoad()
             }
         }

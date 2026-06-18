@@ -16,7 +16,7 @@ struct GroupSettingsView: View {
                     GroupNameEditView(conversationId: viewModel.conversationId)
                 } label: {
                     HStack {
-                        Text("群名称")
+                        Text("Group Name")
                         Spacer()
                         Text(viewModel.groupName)
                             .foregroundStyle(.secondary)
@@ -28,8 +28,8 @@ struct GroupSettingsView: View {
                     GroupAnnouncementEditView(conversationId: viewModel.conversationId)
                 } label: {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("群公告")
-                        Text(viewModel.announcement.isEmpty ? "未设置" : viewModel.announcement)
+                        Text("Group Announcement")
+                        Text(viewModel.announcement.isEmpty ? "Not set" : viewModel.announcement)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
@@ -41,20 +41,20 @@ struct GroupSettingsView: View {
                     MyNicknameEditView(conversationId: viewModel.conversationId)
                 } label: {
                     HStack {
-                        Text("我的群昵称")
+                        Text("My Group Nickname")
                         Spacer()
-                        Text(viewModel.myNickname.isEmpty ? "未设置" : viewModel.myNickname)
+                        Text(viewModel.myNickname.isEmpty ? "Not set" : viewModel.myNickname)
                             .foregroundStyle(.secondary)
                     }
                 }
             }
-            Section("群成员") {
+            Section("Members") {
                 ForEach(viewModel.members) { member in
                     HStack {
                         Text(viewModel.displayName(for: member))
                         if member.isMe {
                             Spacer()
-                            Text("我")
+                            Text("Me")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -62,13 +62,13 @@ struct GroupSettingsView: View {
                 }
             }
         }
-        .navigationTitle("群组设置")
+        .navigationTitle("Group Settings")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             Task { await viewModel.didLoad() }
         }
-        .alert("出错了", isPresented: alertBinding) {
-            Button("好", role: .cancel) {}
+        .alert("Error", isPresented: alertBinding) {
+            Button("OK", role: .cancel) {}
         } message: {
             Text(viewModel.errorMessage ?? "")
         }
