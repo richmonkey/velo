@@ -113,7 +113,6 @@ final class XMTPConversationManager: XMTPConversationManaging {
         guard let conversation = try await client.conversations.findConversation(conversationId: conversationId) else {
             return nil
         }
-        try await conversation.sync()
         return try await summary(for: conversation, currentInboxId: client.inboxID)
     }
 
