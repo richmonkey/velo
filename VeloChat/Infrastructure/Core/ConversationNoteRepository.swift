@@ -41,7 +41,7 @@ final class ConversationNoteRepository: ConversationNoteRepositoryProtocol {
         defaults.set(notes, forKey: inboxStorageKey)
     }
 
-    private func loadAllInboxNotes() -> [String: String] {
+    func loadAllInboxNotes() -> [String: String] {
         defaults.dictionary(forKey: inboxStorageKey) as? [String: String] ?? [:]
     }
 }

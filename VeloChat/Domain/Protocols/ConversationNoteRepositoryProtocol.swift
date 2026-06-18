@@ -7,4 +7,5 @@ protocol ConversationNoteRepositoryProtocol {
     func setNote(_ note: String, forInboxId inboxId: String)
     func note(forInboxId inboxId: String) -> String?
     func removeNote(forInboxId inboxId: String)
+    func loadAllInboxNotes() -> [String: String]
 }

@@ -19,6 +19,7 @@ final class ChatViewModel: ObservableObject {
     let kind: ConversationSummary.Kind
 
     @Published private(set) var nicknameByInboxId: [String: String] = [:]
+    private var inboxNotes: [String: String] = [:]
 
     private let defaultTitle: String
     private let fetchMessages: FetchMessagesUseCase
@@ -83,6 +84,7 @@ final class ChatViewModel: ObservableObject {
 
     func didLoad() {
         unreadCountStore.reset(conversationId: conversationId)
+        inboxNotes = noteRepository.loadAllInboxNotes()
         Task { await load() }
         startStreaming()
         if kind == .group {
@@ -94,7 +96,7 @@ final class ChatViewModel: ObservableObject {
         if let nickname = nicknameByInboxId[inboxId], !nickname.isEmpty {
             return nickname
         }
-        if let note = noteRepository.note(forInboxId: inboxId), !note.isEmpty {
+        if let note = inboxNotes[inboxId], !note.isEmpty {
             return note
         }
         guard inboxId.count > 10 else { return inboxId }
@@ -152,11 +154,6 @@ final class ChatViewModel: ObservableObject {
     private func load() async {
         do {
             let messages = try await fetchMessages.execute(conversationId: conversationId, beforeNs: nil)
-            for message in messages {
-                if let update = message.nicknameUpdate {
-                    nicknameByInboxId[update.inboxId] = update.nickname
-                }
-            }
             viewState = .loaded(messages)
         } catch {
             viewState = .error(error.localizedDescription)
@@ -174,11 +171,6 @@ final class ChatViewModel: ObservableObject {
             guard !older.isEmpty else {
                 hasMoreHistory = false
                 return
-            }
-            for message in older {
-                if let update = message.nicknameUpdate {
-                    nicknameByInboxId[update.inboxId] = update.nickname
-                }
             }
             guard case .loaded(var current) = viewState else { return }
             let existingIds = Set(current.map(\.id))
