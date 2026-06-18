@@ -20,9 +20,10 @@ struct ChatView: View {
         !viewModel.isSending && !draft.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
-    init(conversationId: String, conversationTitle: String, kind: ConversationSummary.Kind) {
+    init(conversationId: String, peerInboxId: String?, conversationTitle: String, kind: ConversationSummary.Kind) {
         _viewModel = StateObject(wrappedValue: AppDI.shared.makeChatViewModel(
             conversationId: conversationId,
+            peerInboxId: peerInboxId,
             conversationTitle: conversationTitle,
             kind: kind
         ))
@@ -73,7 +74,7 @@ struct ChatView: View {
                 switch viewModel.kind {
                 case .dm:
                     NavigationLink {
-                        ConversationSettingsView(conversationId: viewModel.conversationId)
+                        ConversationSettingsView(conversationId: viewModel.conversationId, peerInboxId: viewModel.peerInboxId)
                     } label: {
                         Image(systemName: "info.circle")
                     }
@@ -326,7 +327,8 @@ private struct MessageBubble: View {
 
     var body: some View {
         if message.isSystemNotice {
-            Text(message.text)
+            let actorName = message.isFromMe ? "我" : nameResolver(message.senderInboxId)
+            Text(message.text.replacingOccurrences(of: "{{actor}}", with: actorName))
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 12)

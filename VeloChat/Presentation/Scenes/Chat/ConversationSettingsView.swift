@@ -4,9 +4,9 @@ struct ConversationSettingsView: View {
     @StateObject private var viewModel: ConversationSettingsViewModel
     @Environment(\.dismiss) private var dismiss
 
-    init(conversationId: String) {
+    init(conversationId: String, peerInboxId: String?) {
         _viewModel = StateObject(
-            wrappedValue: AppDI.shared.makeConversationSettingsViewModel(conversationId: conversationId)
+            wrappedValue: AppDI.shared.makeConversationSettingsViewModel(conversationId: conversationId, peerInboxId: peerInboxId)
         )
     }
 

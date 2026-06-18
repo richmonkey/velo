@@ -91,9 +91,10 @@ final class AppDI {
     }
 
     @MainActor
-    func makeChatViewModel(conversationId: String, conversationTitle: String, kind: ConversationSummary.Kind) -> ChatViewModel {
+    func makeChatViewModel(conversationId: String, peerInboxId: String?, conversationTitle: String, kind: ConversationSummary.Kind) -> ChatViewModel {
         ChatViewModel(
             conversationId: conversationId,
+            peerInboxId: peerInboxId,
             conversationTitle: conversationTitle,
             kind: kind,
             fetchMessages: fetchMessagesUseCase,
@@ -118,9 +119,10 @@ final class AppDI {
     }
 
     @MainActor
-    func makeConversationSettingsViewModel(conversationId: String) -> ConversationSettingsViewModel {
+    func makeConversationSettingsViewModel(conversationId: String, peerInboxId: String?) -> ConversationSettingsViewModel {
         ConversationSettingsViewModel(
             conversationId: conversationId,
+            peerInboxId: peerInboxId,
             noteRepository: conversationNoteRepository
         )
     }
@@ -130,7 +132,8 @@ final class AppDI {
         GroupSettingsViewModel(
             conversationId: conversationId,
             fetchGroupInfo: fetchGroupInfoUseCase,
-            fetchGroupMembers: fetchGroupMembersUseCase
+            fetchGroupMembers: fetchGroupMembersUseCase,
+            noteRepository: conversationNoteRepository
         )
     }
 

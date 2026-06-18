@@ -51,7 +51,7 @@ struct GroupSettingsView: View {
             Section("群成员") {
                 ForEach(viewModel.members) { member in
                     HStack {
-                        Text(displayName(for: member))
+                        Text(viewModel.displayName(for: member))
                         if member.isMe {
                             Spacer()
                             Text("我")
@@ -79,12 +79,5 @@ struct GroupSettingsView: View {
             get: { viewModel.errorMessage != nil },
             set: { if !$0 { viewModel.errorMessage = nil } }
         )
-    }
-
-    private func displayName(for member: GroupMember) -> String {
-        if member.isMe { return "我" }
-        if let nickname = member.nickname, !nickname.isEmpty { return nickname }
-        guard member.id.count > 10 else { return member.id }
-        return "\(member.id.prefix(6))…\(member.id.suffix(4))"
     }
 }

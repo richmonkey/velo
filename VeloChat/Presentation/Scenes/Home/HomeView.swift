@@ -54,6 +54,7 @@ struct HomeView: View {
                 .navigationDestination(for: ConversationSummary.self) { conversation in
                     ChatView(
                         conversationId: conversation.id,
+                        peerInboxId: conversation.peerInboxId,
                         conversationTitle: conversation.title,
                         kind: conversation.kind
                     )

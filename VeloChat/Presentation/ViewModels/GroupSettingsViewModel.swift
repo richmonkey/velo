@@ -16,15 +16,26 @@ final class GroupSettingsViewModel: ObservableObject {
 
     private let fetchGroupInfo: FetchGroupInfoUseCase
     private let fetchGroupMembers: FetchGroupMembersUseCase
+    private let noteRepository: ConversationNoteRepositoryProtocol
 
     init(
         conversationId: String,
         fetchGroupInfo: FetchGroupInfoUseCase,
-        fetchGroupMembers: FetchGroupMembersUseCase
+        fetchGroupMembers: FetchGroupMembersUseCase,
+        noteRepository: ConversationNoteRepositoryProtocol
     ) {
         self.conversationId = conversationId
         self.fetchGroupInfo = fetchGroupInfo
         self.fetchGroupMembers = fetchGroupMembers
+        self.noteRepository = noteRepository
+    }
+
+    func displayName(for member: GroupMember) -> String {
+        if member.isMe { return "我" }
+        if let nickname = member.nickname, !nickname.isEmpty { return nickname }
+        if let note = noteRepository.note(forInboxId: member.id), !note.isEmpty { return note }
+        guard member.id.count > 10 else { return member.id }
+        return "\(member.id.prefix(6))…\(member.id.suffix(4))"
     }
 
     func didLoad() async {

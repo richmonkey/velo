@@ -14,6 +14,7 @@ final class ChatViewModel: ObservableObject {
     private var isLoadingMore = false
 
     let conversationId: String
+    let peerInboxId: String?
     @Published private(set) var conversationTitle: String
     let kind: ConversationSummary.Kind
 
@@ -33,6 +34,7 @@ final class ChatViewModel: ObservableObject {
 
     init(
         conversationId: String,
+        peerInboxId: String?,
         conversationTitle: String,
         kind: ConversationSummary.Kind,
         fetchMessages: FetchMessagesUseCase,
@@ -46,6 +48,7 @@ final class ChatViewModel: ObservableObject {
         fetchGroupInfo: FetchGroupInfoUseCase
     ) {
         self.conversationId = conversationId
+        self.peerInboxId = peerInboxId
         self.conversationTitle = conversationTitle
         self.defaultTitle = conversationTitle
         self.kind = kind
@@ -90,6 +93,9 @@ final class ChatViewModel: ObservableObject {
     func displayName(forInboxId inboxId: String) -> String {
         if let nickname = nicknameByInboxId[inboxId], !nickname.isEmpty {
             return nickname
+        }
+        if let note = noteRepository.note(forInboxId: inboxId), !note.isEmpty {
+            return note
         }
         guard inboxId.count > 10 else { return inboxId }
         return "\(inboxId.prefix(6))…\(inboxId.suffix(4))"

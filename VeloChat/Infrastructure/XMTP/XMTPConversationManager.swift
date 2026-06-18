@@ -329,7 +329,7 @@ final class XMTPConversationManager: XMTPConversationManaging {
             memberNicknameStore.setNickname(nickname, forConversationId: conversationId, inboxId: senderId)
             return ChatMessageInfo(
                 id: message.id,
-                text: "\(Self.abbreviated(senderId)) 设置了群昵称「\(nickname)」",
+                text: "\(Self.actorPlaceholder) 设置了群昵称「\(nickname)」",
                 isFromMe: senderId == currentInboxId,
                 isSystemNotice: true,
                 senderInboxId: senderId,
@@ -418,8 +418,13 @@ final class XMTPConversationManager: XMTPConversationManaging {
         return false
     }
 
+    // The system notice text below is rendered before any local nickname/note state is
+    // known (this is the Infrastructure layer); the View substitutes this placeholder with
+    // the actor's resolved display name (nickname → note → abbreviated id) at render time.
+    private static let actorPlaceholder = "{{actor}}"
+
     private static func summarize(_ update: GroupUpdated) -> String {
-        let actor = abbreviated(update.initiatedByInboxID)
+        let actor = actorPlaceholder
         var parts: [String] = []
 
         for change in update.metadataFieldChanges {
