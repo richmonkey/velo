@@ -39,8 +39,24 @@ final class ChatRepository: ChatRepositoryProtocol {
         }
     }
 
-    func streamAllMessages() -> AsyncThrowingStream<String, Error> {
-        conversationManager.streamAllMessages()
+    func streamAllMessages() -> AsyncThrowingStream<ConversationActivity, Error> {
+        AsyncThrowingStream { continuation in
+            let task = Task {
+                do {
+                    for try await event in conversationManager.streamAllMessages() {
+                        continuation.yield(ConversationActivity(
+                            conversationId: event.conversationId,
+                            isFromMe: event.isFromMe,
+                            nicknameUpdate: event.nicknameUpdate.map { ConversationActivity.NicknameUpdate(inboxId: $0.inboxId, nickname: $0.nickname) }
+                        ))
+                    }
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+            continuation.onTermination = { _ in task.cancel() }
+        }
     }
 
     private static func map(_ info: ChatMessageInfo) -> ChatMessage {

@@ -14,6 +14,8 @@ struct ConversationSummaryInfo {
     let lastMessagePreview: String?
     let lastActivityDate: Date
     let peerInboxId: String?
+    let lastMessageSenderInboxId: String?
+    let lastMessageIsFromMe: Bool
 }
 
 struct GroupInfoData {
@@ -24,12 +26,17 @@ struct GroupInfoData {
 struct GroupMemberInfo {
     let inboxId: String
     let isMe: Bool
-    let nickname: String?
 }
 
 struct NicknameUpdateInfo {
     let inboxId: String
     let nickname: String
+}
+
+struct MessageEventInfo {
+    let conversationId: String
+    let isFromMe: Bool
+    let nicknameUpdate: NicknameUpdateInfo?
 }
 
 struct ChatMessageInfo {
@@ -68,23 +75,21 @@ protocol XMTPConversationManaging {
     func sendImage(conversationId: String, imageData: Data, filename: String, mimeType: String) async throws -> ChatMessageInfo
     func sendVoiceMessage(conversationId: String, audioData: Data, filename: String, mimeType: String, duration: TimeInterval) async throws -> ChatMessageInfo
     func streamMessages(conversationId: String) -> AsyncThrowingStream<ChatMessageInfo, Error>
-    func streamAllMessages() -> AsyncThrowingStream<String, Error>
+    func streamAllMessages() -> AsyncThrowingStream<MessageEventInfo, Error>
     func createGroup(name: String, peerInboxIds: [String]) async throws -> ConversationSummaryInfo
     func pushTopics(forConversationIds conversationIds: [String]) async throws -> [String]
     func fetchGroupInfo(conversationId: String) async throws -> GroupInfoData
     func updateGroupAnnouncement(conversationId: String, announcement: String) async throws
     func updateGroupName(conversationId: String, name: String) async throws
     func fetchGroupMembers(conversationId: String) async throws -> [GroupMemberInfo]
-    func updateMyNickname(conversationId: String, nickname: String) async throws
+    func updateMyNickname(conversationId: String, nickname: String) async throws -> NicknameUpdateInfo
 }
 
 final class XMTPConversationManager: XMTPConversationManaging {
     private let clientManager: XMTPClientManaging
-    private let memberNicknameStore: MemberNicknameStoring
 
-    init(clientManager: XMTPClientManaging, memberNicknameStore: MemberNicknameStoring) {
+    init(clientManager: XMTPClientManaging) {
         self.clientManager = clientManager
-        self.memberNicknameStore = memberNicknameStore
     }
 
     func fetchConversations() async throws -> [ConversationSummaryInfo] {
@@ -97,7 +102,7 @@ final class XMTPConversationManager: XMTPConversationManaging {
 
         var summaries: [ConversationSummaryInfo] = []
         for conversation in conversations {
-            summaries.append(try await summary(for: conversation))
+            summaries.append(try await summary(for: conversation, currentInboxId: client.inboxID))
         }
         return summaries
     }
@@ -105,7 +110,7 @@ final class XMTPConversationManager: XMTPConversationManaging {
     func startConversation(peerInboxId: String) async throws -> ConversationSummaryInfo {
         let client = try await clientManager.currentClient()
         let conversation = try await client.conversations.newConversation(with: peerInboxId)
-        return try await summary(for: conversation)
+        return try await summary(for: conversation, currentInboxId: client.inboxID)
     }
 
     func fetchMessages(conversationId: String, beforeNs: Int64?) async throws -> [ChatMessageInfo] {
@@ -199,13 +204,20 @@ final class XMTPConversationManager: XMTPConversationManaging {
         }
     }
 
-    func streamAllMessages() -> AsyncThrowingStream<String, Error> {
+    func streamAllMessages() -> AsyncThrowingStream<MessageEventInfo, Error> {
         AsyncThrowingStream { continuation in
             let task = Task {
                 do {
                     let client = try await self.clientManager.currentClient()
-                    for try await message in await client.conversations.streamAllMessages() {
-                        continuation.yield(message.conversationId)
+                    for try await message in client.conversations.streamAllMessages() {
+                        print("[streamAllMessages] conversationId=\(message.conversationId) senderInboxId=\(message.senderInboxId) id=\(message.id)")
+                        let isFromMe = message.senderInboxId == client.inboxID
+                        var nicknameUpdate: NicknameUpdateInfo?
+                        if (try? message.encodedContent.type) == ContentTypeMemberNickname,
+                           let nickname: String = try? message.content(), !nickname.isEmpty {
+                            nicknameUpdate = NicknameUpdateInfo(inboxId: message.senderInboxId, nickname: nickname)
+                        }
+                        continuation.yield(MessageEventInfo(conversationId: message.conversationId, isFromMe: isFromMe, nicknameUpdate: nicknameUpdate))
                     }
                     continuation.finish()
                 } catch {
@@ -223,7 +235,7 @@ final class XMTPConversationManager: XMTPConversationManaging {
             permissions: .allMembers,
             name: name
         )
-        return try await summary(for: .group(group))
+        return try await summary(for: .group(group), currentInboxId: client.inboxID)
     }
 
     func pushTopics(forConversationIds conversationIds: [String]) async throws -> [String] {
@@ -283,13 +295,12 @@ final class XMTPConversationManager: XMTPConversationManaging {
             throw ConversationManagerError.notAGroup
         }
         let members = try await group.members
-        let nicknames = memberNicknameStore.nicknames(forConversationId: conversationId)
         return members.map {
-            GroupMemberInfo(inboxId: $0.inboxId, isMe: $0.inboxId == client.inboxID, nickname: nicknames[$0.inboxId])
+            GroupMemberInfo(inboxId: $0.inboxId, isMe: $0.inboxId == client.inboxID)
         }
     }
 
-    func updateMyNickname(conversationId: String, nickname: String) async throws {
+    func updateMyNickname(conversationId: String, nickname: String) async throws -> NicknameUpdateInfo {
         let client = try await clientManager.currentClient()
         guard let conversation = try await client.conversations.findConversation(conversationId: conversationId) else {
             throw ConversationManagerError.conversationNotFound
@@ -298,7 +309,7 @@ final class XMTPConversationManager: XMTPConversationManaging {
             throw ConversationManagerError.notAGroup
         }
         _ = try await conversation.send(content: nickname, options: SendOptions(contentType: ContentTypeMemberNickname))
-        memberNicknameStore.setNickname(nickname, forConversationId: conversationId, inboxId: client.inboxID)
+        return NicknameUpdateInfo(inboxId: client.inboxID, nickname: nickname)
     }
 
     private func map(_ message: DecodedMessage, conversationId: String, currentInboxId: String, isGroup: Bool) -> ChatMessageInfo? {
@@ -326,7 +337,6 @@ final class XMTPConversationManager: XMTPConversationManaging {
                 return nil
             }
             let senderId = message.senderInboxId
-            memberNicknameStore.setNickname(nickname, forConversationId: conversationId, inboxId: senderId)
             return ChatMessageInfo(
                 id: message.id,
                 text: "\(Self.actorPlaceholder) 设置了群昵称「\(nickname)」",
@@ -448,16 +458,22 @@ final class XMTPConversationManager: XMTPConversationManaging {
         return parts.isEmpty ? "\(actor) 更新了群信息" : parts.joined(separator: "，")
     }
 
-    private func summary(for conversation: Conversation) async throws -> ConversationSummaryInfo {
+    private func summary(for conversation: Conversation, currentInboxId: String) async throws -> ConversationSummaryInfo {
         let lastMessage = try? await conversation.lastMessage()
+        let contentType = try? lastMessage?.encodedContent.type
         let preview: String?
-        if let lastMessage, (try? lastMessage.encodedContent.type) == ContentTypeAttachment,
+        if let lastMessage, contentType == ContentTypeAttachment,
            let attachment: Attachment = try? lastMessage.content() {
             preview = attachment.mimeType.hasPrefix("audio/") ? "[语音]" : "[图片]"
+        } else if let lastMessage, contentType == ContentTypeGroupUpdated,
+                  let update: GroupUpdated = try? lastMessage.content() {
+            preview = Self.summarize(update)
         } else {
             preview = try? lastMessage?.body
         }
         let date = Date(timeIntervalSince1970: Double(conversation.lastActivityAtNs) / 1_000_000_000)
+        let senderInboxId = lastMessage?.senderInboxId
+        let isFromMe = senderInboxId == currentInboxId
 
         switch conversation {
         case .group(let group):
@@ -467,7 +483,9 @@ final class XMTPConversationManager: XMTPConversationManaging {
                 title: (try? group.name()) ?? "群聊",
                 lastMessagePreview: preview,
                 lastActivityDate: date,
-                peerInboxId: nil
+                peerInboxId: nil,
+                lastMessageSenderInboxId: senderInboxId,
+                lastMessageIsFromMe: isFromMe
             )
         case .dm(let dm):
             let peer = (try? dm.peerInboxId) ?? "未知用户"
@@ -477,7 +495,9 @@ final class XMTPConversationManager: XMTPConversationManaging {
                 title: Self.abbreviated(peer),
                 lastMessagePreview: preview,
                 lastActivityDate: date,
-                peerInboxId: peer
+                peerInboxId: peer,
+                lastMessageSenderInboxId: senderInboxId,
+                lastMessageIsFromMe: isFromMe
             )
         }
     }

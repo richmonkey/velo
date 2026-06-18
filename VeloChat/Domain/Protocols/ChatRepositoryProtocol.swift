@@ -6,5 +6,5 @@ protocol ChatRepositoryProtocol {
     func sendImage(conversationId: String, imageData: Data, filename: String, mimeType: String) async throws -> ChatMessage
     func sendVoiceMessage(conversationId: String, audioData: Data, filename: String, mimeType: String, duration: TimeInterval) async throws -> ChatMessage
     func streamMessages(conversationId: String) -> AsyncThrowingStream<ChatMessage, Error>
-    func streamAllMessages() -> AsyncThrowingStream<String, Error>
+    func streamAllMessages() -> AsyncThrowingStream<ConversationActivity, Error>
 }

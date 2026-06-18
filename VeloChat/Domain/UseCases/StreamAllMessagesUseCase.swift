@@ -1,5 +1,5 @@
 protocol StreamAllMessagesUseCase {
-    func execute() -> AsyncThrowingStream<String, Error>
+    func execute() -> AsyncThrowingStream<ConversationActivity, Error>
 }
 
 final class DefaultStreamAllMessagesUseCase: StreamAllMessagesUseCase {
@@ -9,7 +9,7 @@ final class DefaultStreamAllMessagesUseCase: StreamAllMessagesUseCase {
         self.repository = repository
     }
 
-    func execute() -> AsyncThrowingStream<String, Error> {
+    func execute() -> AsyncThrowingStream<ConversationActivity, Error> {
         repository.streamAllMessages()
     }
 }

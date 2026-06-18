@@ -33,8 +33,9 @@ final class AppDI {
         initializeXMTPClientUseCase = DefaultInitializeXMTPClientUseCase(repository: repository)
 
         memberNicknameStore = MemberNicknameStore()
-        let conversationManager = XMTPConversationManager(clientManager: clientManager, memberNicknameStore: memberNicknameStore)
-        let conversationRepository = ConversationRepository(conversationManager: conversationManager)
+        conversationNoteRepository = ConversationNoteRepository()
+        let conversationManager = XMTPConversationManager(clientManager: clientManager)
+        let conversationRepository = ConversationRepository(conversationManager: conversationManager, memberNicknameStore: memberNicknameStore)
         fetchConversationsUseCase = DefaultFetchConversationsUseCase(repository: conversationRepository)
         startConversationUseCase = DefaultStartConversationUseCase(repository: conversationRepository)
 
@@ -60,7 +61,6 @@ final class AppDI {
         syncPushSubscriptionsUseCase = DefaultSyncPushSubscriptionsUseCase(repository: pushRepository)
 
         unreadCountRepository = UnreadCountRepository()
-        conversationNoteRepository = ConversationNoteRepository()
     }
 
     @MainActor
@@ -76,7 +76,8 @@ final class AppDI {
             syncPushSubscriptions: syncPushSubscriptionsUseCase,
             streamAllMessages: streamAllMessagesUseCase,
             unreadCountStore: unreadCountRepository,
-            noteRepository: conversationNoteRepository
+            noteRepository: conversationNoteRepository,
+            memberNicknameStore: memberNicknameStore
         )
     }
 

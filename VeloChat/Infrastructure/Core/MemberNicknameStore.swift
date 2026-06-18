@@ -1,11 +1,5 @@
 import Foundation
 
-protocol MemberNicknameStoring {
-    func nickname(forConversationId conversationId: String, inboxId: String) -> String?
-    func nicknames(forConversationId conversationId: String) -> [String: String]
-    func setNickname(_ nickname: String, forConversationId conversationId: String, inboxId: String)
-}
-
 final class MemberNicknameStore: MemberNicknameStoring {
     private let defaults = UserDefaults.standard
     private let storageKey = "velo.group_member_nicknames"

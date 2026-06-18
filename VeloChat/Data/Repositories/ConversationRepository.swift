@@ -1,8 +1,10 @@
 final class ConversationRepository: ConversationRepositoryProtocol {
     private let conversationManager: XMTPConversationManaging
+    private let memberNicknameStore: MemberNicknameStoring
 
-    init(conversationManager: XMTPConversationManaging) {
+    init(conversationManager: XMTPConversationManaging, memberNicknameStore: MemberNicknameStoring) {
         self.conversationManager = conversationManager
+        self.memberNicknameStore = memberNicknameStore
     }
 
     func fetchConversations() async throws -> [ConversationSummary] {
@@ -35,11 +37,13 @@ final class ConversationRepository: ConversationRepositoryProtocol {
 
     func fetchGroupMembers(conversationId: String) async throws -> [GroupMember] {
         let infos = try await conversationManager.fetchGroupMembers(conversationId: conversationId)
-        return infos.map { GroupMember(id: $0.inboxId, isMe: $0.isMe, nickname: $0.nickname) }
+        let nicknames = memberNicknameStore.nicknames(forConversationId: conversationId)
+        return infos.map { GroupMember(id: $0.inboxId, isMe: $0.isMe, nickname: nicknames[$0.inboxId]) }
     }
 
     func updateMyNickname(conversationId: String, nickname: String) async throws {
-        try await conversationManager.updateMyNickname(conversationId: conversationId, nickname: nickname)
+        let update = try await conversationManager.updateMyNickname(conversationId: conversationId, nickname: nickname)
+        memberNicknameStore.setNickname(update.nickname, forConversationId: conversationId, inboxId: update.inboxId)
     }
 
     private static func map(_ info: ConversationSummaryInfo) -> ConversationSummary {
@@ -49,7 +53,9 @@ final class ConversationRepository: ConversationRepositoryProtocol {
             title: info.title,
             lastMessagePreview: info.lastMessagePreview,
             lastActivityDate: info.lastActivityDate,
-            peerInboxId: info.peerInboxId
+            peerInboxId: info.peerInboxId,
+            lastMessageSenderInboxId: info.lastMessageSenderInboxId,
+            lastMessageIsFromMe: info.lastMessageIsFromMe
         )
     }
 }
