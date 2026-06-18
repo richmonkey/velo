@@ -45,5 +45,5 @@ targets:
         aps-environment: development
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.daibou007.velochat
+        PRODUCT_BUNDLE_IDENTIFIER: com.daibou007.velo
         TARGETED_DEVICE_FAMILY: "1"
