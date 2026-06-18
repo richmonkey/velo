@@ -31,7 +31,7 @@ targets:
       path: VeloChat/Info.plist
       properties:
         UILaunchStoryboardName: LaunchScreen
-        CFBundleDisplayName: VeloChat
+        CFBundleDisplayName: Velochat
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         LSApplicationCategoryType: public.app-category.utilities

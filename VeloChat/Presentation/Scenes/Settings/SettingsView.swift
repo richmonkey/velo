@@ -4,6 +4,7 @@ import UIKit
 struct SettingsView: View {
     @StateObject private var viewModel = AppDI.shared.makeSettingsViewModel()
     @ObservedObject private var themeManager = AppDI.shared.themeManager
+    @Environment(\.openURL) private var openURL
     @State private var showingOnboarding = false
     @State private var confirmResetOnboarding = false
     @State private var shareItem: ShareTextItem?
@@ -41,17 +42,32 @@ struct SettingsView: View {
             }
 
             Section("About") {
-                NavigationLink("About VeloChat") {
+                NavigationLink("About Velochat") {
                     AboutView()
                 }
                 Button("Share This App") {
                     shareItem = ShareTextItem(
-                        text: "Check out VeloChat — decentralized, private messaging with no accounts. \(AppStoreConfig.appStoreURL.absoluteString)"
+                        text: "Check out Velochat - decentralized, private messaging with no accounts. \(AppStoreConfig.appStoreURL.absoluteString)"
                     )
                 }
                 .buttonStyle(.pressable)
-                Button("Rate VeloChat") {
+                Button("Rate Velochat") {
                     UIApplication.shared.open(AppStoreConfig.writeReviewURL)
+                }
+                .buttonStyle(.pressable)
+            }
+
+            Section("Legal & Support") {
+                Button("Privacy Policy") {
+                    openURL(AppStoreConfig.privacyPolicyURL)
+                }
+                .buttonStyle(.pressable)
+                Button("Terms of Service") {
+                    openURL(AppStoreConfig.termsOfServiceURL)
+                }
+                .buttonStyle(.pressable)
+                Button("Support") {
+                    openURL(AppStoreConfig.supportURL)
                 }
                 .buttonStyle(.pressable)
             }

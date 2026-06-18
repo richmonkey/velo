@@ -1,21 +1,19 @@
 import Foundation
 
-/// Placeholder release metadata — update before submitting to the App Store.
 enum AppStoreConfig {
-    /// TODO: replace with the real numeric App Store ID once the app is published.
-    static let appStoreId = "0000000000"
+    static let appStoreId = "6781742277"
 
     static var appStoreURL: URL {
         URL(string: "https://apps.apple.com/app/id\(appStoreId)")!
     }
 
     static var writeReviewURL: URL {
-        URL(string: "itms-apps://itunes.apple.com/app/id\(appStoreId)?action=write-review")!
+        URL(string: "https://apps.apple.com/app/id\(appStoreId)?action=write-review")!
     }
 
-    /// TODO: replace with the real published Privacy Policy URL.
-    static let privacyPolicyURL = URL(string: "https://daibou007.com/velochat/privacy")!
+    static let privacyPolicyURL = URL(string: "https://daibou007.github.io/PrivacyAndSupport/Velochat/privacy.html")!
 
-    /// TODO: replace with the real published Terms of Service URL.
-    static let termsOfServiceURL = URL(string: "https://daibou007.com/velochat/terms")!
+    static let termsOfServiceURL = URL(string: "https://daibou007.github.io/PrivacyAndSupport/Velochat/terms.html")!
+
+    static let supportURL = URL(string: "https://daibou007.github.io/PrivacyAndSupport/Velochat/support.html")!
 }

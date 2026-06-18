@@ -11,7 +11,7 @@ struct LoadingView: View {
                 .font(.system(size: 56, weight: .medium))
                 .foregroundStyle(Color.brandPrimary)
 
-            Text("VeloChat")
+            Text("Velochat")
                 .font(.system(size: 28, weight: .bold))
                 .foregroundStyle(Color.textPrimary)
                 .padding(.top, 16)

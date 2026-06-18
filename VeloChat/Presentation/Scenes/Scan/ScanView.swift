@@ -92,7 +92,7 @@ struct ScanView: View {
                 .background(.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 12))
                 .padding(.horizontal, 32)
         } else {
-            Text("Point your camera at a VeloChat QR code")
+            Text("Point your camera at a Velochat QR code")
                 .font(.subheadline)
                 .foregroundStyle(.white.opacity(0.85))
                 .multilineTextAlignment(.center)

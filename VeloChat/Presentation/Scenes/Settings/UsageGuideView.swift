@@ -9,7 +9,7 @@ private struct GuideSection: Identifiable {
 private let guideSections: [GuideSection] = [
     GuideSection(
         title: "Decentralized Identity",
-        body: "VeloChat has no accounts and no login. On first launch, a unique XMTP identity (inbox ID and wallet address) is generated automatically and stored securely in your device's Keychain."
+        body: "Velochat has no accounts and no login. On first launch, a unique XMTP identity (inbox ID and wallet address) is generated automatically and stored securely in your device's Keychain."
     ),
     GuideSection(
         title: "Adding Contacts",

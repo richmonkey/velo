@@ -1,12 +1,15 @@
 import SwiftUI
 
 struct AboutView: View {
-    @Environment(\.openURL) private var openURL
-
     private var versionText: String {
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
         let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
         return "Version \(version) (\(build))"
+    }
+
+    private var copyrightText: String {
+        let year = Calendar.current.component(.year, from: Date())
+        return "\u{00A9} \(year) Daibou007 Team. All rights reserved."
     }
 
     var body: some View {
@@ -17,7 +20,7 @@ struct AboutView: View {
                     .foregroundStyle(Color.brandPrimary)
                     .padding(.top, 24)
 
-                Text("VeloChat")
+                Text("Velochat")
                     .font(.system(size: 24, weight: .semibold))
                     .foregroundStyle(Color.textPrimary)
 
@@ -25,43 +28,34 @@ struct AboutView: View {
                     .font(.system(size: 13))
                     .foregroundStyle(Color.textTertiary)
 
-                Text("VeloChat is a decentralized messaging app built on the XMTP protocol. Every conversation is end-to-end encrypted, with no accounts, no servers holding your identity, and no ads.")
+                Text("Developed by Daibou007 Team")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(Color.textSecondary)
+
+                Text("Velochat is a decentralized messaging app built on the XMTP protocol. Every conversation is end-to-end encrypted, with no accounts, no servers holding your identity, and no ads.")
                     .font(.system(size: 15))
                     .foregroundStyle(Color.textSecondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 24)
 
-                VStack(spacing: 0) {
-                    linkRow(title: "Privacy Policy", url: AppStoreConfig.privacyPolicyURL)
-                    Divider()
-                    linkRow(title: "Terms of Service", url: AppStoreConfig.termsOfServiceURL)
-                }
-                .background(Color.cardBackground, in: RoundedRectangle(cornerRadius: 12))
-                .padding(.horizontal, 16)
-                .padding(.top, 12)
+                Text("Velochat is powered by the open-source XMTP protocol (xmtp.org) for decentralized, end-to-end encrypted messaging.")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Color.textTertiary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
+                    .padding(.top, 4)
+
+                Text(copyrightText)
+                    .font(.system(size: 12))
+                    .foregroundStyle(Color.textTertiary)
+                    .padding(.top, 8)
 
                 Spacer(minLength: 24)
             }
         }
         .background(Color.cardBackground.ignoresSafeArea())
-        .navigationTitle("About VeloChat")
+        .navigationTitle("About Velochat")
         .navigationBarTitleDisplayMode(.inline)
-    }
-
-    private func linkRow(title: String, url: URL) -> some View {
-        Button {
-            openURL(url)
-        } label: {
-            HStack {
-                Text(title)
-                    .foregroundStyle(Color.textPrimary)
-                Spacer()
-                Image(systemName: "arrow.up.right")
-                    .foregroundStyle(Color.textTertiary)
-            }
-            .padding()
-        }
-        .buttonStyle(.pressable)
     }
 }
 
