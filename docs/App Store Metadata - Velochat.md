@@ -29,10 +29,10 @@ chat,messenger,privacy,encrypted,decentralized,xmtp,web3,secure,messaging,crypto
 ## Promotional Text (Max 170 characters)
 
 ```
-Velochat is private messaging with no accounts and no servers. Built on the XMTP protocol, every chat is end-to-end encrypted. Scan a QR code to start chatting instantly.
+Velochat has no central server. Built on the decentralized XMTP protocol, every chat is end-to-end encrypted, with your identity stored only on your device.
 ```
 
-(170 characters)
+(156 characters)
 
 ## Description (Max 4000 characters)
 
