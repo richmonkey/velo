@@ -102,6 +102,7 @@ final class XMTPConversationManager: XMTPConversationManaging {
 
     func fetchConversations() async throws -> [ConversationSummaryInfo] {
         let client = try await clientManager.currentClient()
+        try await client.conversations.sync()
 
         let conversations = try await client.conversations.list(
             consentStates: [.allowed, .unknown]
@@ -486,13 +487,16 @@ final class XMTPConversationManager: XMTPConversationManaging {
     private func summary(for conversation: Conversation, currentInboxId: String) async throws -> ConversationSummaryInfo {
         let lastMessage = try? await conversation.lastMessage()
         let contentType = try? lastMessage?.encodedContent.type
+        let isGroup = Self.isGroup(conversation)
         let preview: String?
         if let lastMessage, contentType == ContentTypeAttachment,
            let attachment: Attachment = try? lastMessage.content() {
             preview = attachment.mimeType.hasPrefix("audio/") ? "[Voice]" : "[Image]"
-        } else if let lastMessage, contentType == ContentTypeGroupUpdated,
+        } else if let lastMessage, contentType == ContentTypeGroupUpdated, isGroup,
                   let update: GroupUpdated = try? lastMessage.content() {
             preview = Self.summarize(update)
+        } else if contentType == ContentTypeGroupUpdated {
+            preview = nil
         } else {
             preview = try? lastMessage?.body
         }

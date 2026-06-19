@@ -88,6 +88,7 @@ struct HomeView: View {
                     .tint(.red)
                 }
             }
+            .listStyle(.plain)
             .refreshable {
                 await viewModel.refresh()
             }
