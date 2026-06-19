@@ -210,6 +210,7 @@ struct ChatView: View {
                 audioRecorder.cancelRecording()
             }
             .buttonStyle(.pressable)
+            .foregroundStyle(Color.brandPrimary)
             Spacer()
             Text("Recording \(formattedDuration(audioRecorder.elapsed))")
                 .foregroundStyle(Color.textSecondary)

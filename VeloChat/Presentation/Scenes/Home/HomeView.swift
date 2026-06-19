@@ -10,6 +10,7 @@ struct HomeView: View {
         NavigationStack {
             content
                 .navigationTitle("Chats")
+                .navigationBarTitleDisplayMode(.inline)
                 .task {
                     viewModel.didLoad()
                 }

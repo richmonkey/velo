@@ -15,7 +15,6 @@ private struct QRScannerRepresentable: UIViewControllerRepresentable {
 struct ScanView: View {
     @StateObject private var viewModel = AppDI.shared.makeScanViewModel()
     @Environment(\.dismiss) private var dismiss
-    @ObservedObject private var themeManager = AppDI.shared.themeManager
 
     /// Called once a conversation has been created, so the presenting
     /// Home screen can refresh its list before this sheet is dismissed.
@@ -56,7 +55,6 @@ struct ScanView: View {
                 }
             }
         }
-        .preferredColorScheme(themeManager.colorScheme)
     }
 
     private var viewfinder: some View {
