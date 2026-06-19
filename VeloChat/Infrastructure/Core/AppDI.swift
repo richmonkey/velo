@@ -1,7 +1,7 @@
 final class AppDI {
     static let shared = AppDI()
 
-    private static let pushServerHost = "http://192.168.1.198:8080"
+    private static let pushServerHost = "https://xmtp.gobelieve.xyz"
 
     let initializeXMTPClientUseCase: InitializeXMTPClientUseCase
     let syncAllConversationsUseCase: SyncAllConversationsUseCase
