@@ -16,6 +16,9 @@ packages:
   XMTPiOS:
     url: https://github.com/xmtp/xmtp-ios
     exactVersion: 4.9.0
+  GRDB:
+    url: https://github.com/groue/GRDB.swift
+    from: 6.0.0
 
 targets:
   VeloChat:
@@ -27,6 +30,8 @@ targets:
     dependencies:
       - package: XMTPiOS
         product: XMTPiOS
+      - package: GRDB
+        product: GRDB
     info:
       path: VeloChat/Info.plist
       properties:

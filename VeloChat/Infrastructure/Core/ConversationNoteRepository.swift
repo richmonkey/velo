@@ -1,47 +1,69 @@
-import Foundation
+import GRDB
 
 final class ConversationNoteRepository: ConversationNoteRepositoryProtocol {
-    private let defaults = UserDefaults.standard
-    private let storageKey = "velo.conversation_notes"
-    private let inboxStorageKey = "velo.inbox_notes"
+    private let dbQueue: DatabaseQueue
+
+    init(dbQueue: DatabaseQueue) {
+        self.dbQueue = dbQueue
+    }
 
     func setNote(_ note: String, forConversationId id: String) {
-        var notes = loadAll()
-        notes[id] = note
-        defaults.set(notes, forKey: storageKey)
+        try? dbQueue.write { db in
+            try db.execute(sql: """
+                INSERT INTO conversation_local_state (conversation_id, note) VALUES (?, ?)
+                ON CONFLICT(conversation_id) DO UPDATE SET note = excluded.note
+                """, arguments: [id, note])
+        }
     }
 
     func note(forConversationId id: String) -> String? {
-        loadAll()[id]
+        (try? dbQueue.read { db in
+            try String.fetchOne(db, sql: "SELECT note FROM conversation_local_state WHERE conversation_id = ?", arguments: [id])
+        }) ?? nil
     }
 
     func removeNote(forConversationId id: String) {
-        var notes = loadAll()
-        notes.removeValue(forKey: id)
-        defaults.set(notes, forKey: storageKey)
+        try? dbQueue.write { db in
+            try db.execute(sql: "UPDATE conversation_local_state SET note = NULL WHERE conversation_id = ?", arguments: [id])
+        }
     }
 
     func loadAll() -> [String: String] {
-        defaults.dictionary(forKey: storageKey) as? [String: String] ?? [:]
+        let rows = (try? dbQueue.read { db in
+            try Row.fetchAll(db, sql: "SELECT conversation_id, note FROM conversation_local_state WHERE note IS NOT NULL")
+        }) ?? []
+        return rows.reduce(into: [:]) { result, row in
+            result[row["conversation_id"]] = row["note"]
+        }
     }
 
     func setNote(_ note: String, forInboxId inboxId: String) {
-        var notes = loadAllInboxNotes()
-        notes[inboxId] = note
-        defaults.set(notes, forKey: inboxStorageKey)
+        try? dbQueue.write { db in
+            try db.execute(sql: """
+                INSERT INTO inbox_notes (inbox_id, note) VALUES (?, ?)
+                ON CONFLICT(inbox_id) DO UPDATE SET note = excluded.note
+                """, arguments: [inboxId, note])
+        }
     }
 
     func note(forInboxId inboxId: String) -> String? {
-        loadAllInboxNotes()[inboxId]
+        (try? dbQueue.read { db in
+            try String.fetchOne(db, sql: "SELECT note FROM inbox_notes WHERE inbox_id = ?", arguments: [inboxId])
+        }) ?? nil
     }
 
     func removeNote(forInboxId inboxId: String) {
-        var notes = loadAllInboxNotes()
-        notes.removeValue(forKey: inboxId)
-        defaults.set(notes, forKey: inboxStorageKey)
+        try? dbQueue.write { db in
+            try db.execute(sql: "DELETE FROM inbox_notes WHERE inbox_id = ?", arguments: [inboxId])
+        }
     }
 
     func loadAllInboxNotes() -> [String: String] {
-        defaults.dictionary(forKey: inboxStorageKey) as? [String: String] ?? [:]
+        let rows = (try? dbQueue.read { db in
+            try Row.fetchAll(db, sql: "SELECT inbox_id, note FROM inbox_notes")
+        }) ?? []
+        return rows.reduce(into: [:]) { result, row in
+            result[row["inbox_id"]] = row["note"]
+        }
     }
 }

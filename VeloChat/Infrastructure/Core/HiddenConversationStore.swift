@@ -1,26 +1,32 @@
-import Foundation
+import GRDB
 
 final class HiddenConversationStore: HiddenConversationStoring {
-    private let defaults = UserDefaults.standard
-    private let storageKey = "velo.hidden_conversation_ids"
+    private let dbQueue: DatabaseQueue
+
+    init(dbQueue: DatabaseQueue) {
+        self.dbQueue = dbQueue
+    }
 
     func isHidden(conversationId: String) -> Bool {
-        loadAll().contains(conversationId)
+        (try? dbQueue.read { db in
+            try Bool.fetchOne(db, sql: "SELECT is_hidden FROM conversation_local_state WHERE conversation_id = ?", arguments: [conversationId])
+        }) ?? false ?? false
     }
 
     func hide(conversationId: String) {
-        var all = loadAll()
-        all.insert(conversationId)
-        defaults.set(Array(all), forKey: storageKey)
+        setHidden(true, conversationId: conversationId)
     }
 
     func unhide(conversationId: String) {
-        var all = loadAll()
-        all.remove(conversationId)
-        defaults.set(Array(all), forKey: storageKey)
+        setHidden(false, conversationId: conversationId)
     }
 
-    private func loadAll() -> Set<String> {
-        Set(defaults.stringArray(forKey: storageKey) ?? [])
+    private func setHidden(_ hidden: Bool, conversationId: String) {
+        try? dbQueue.write { db in
+            try db.execute(sql: """
+                INSERT INTO conversation_local_state (conversation_id, is_hidden) VALUES (?, ?)
+                ON CONFLICT(conversation_id) DO UPDATE SET is_hidden = excluded.is_hidden
+                """, arguments: [conversationId, hidden])
+        }
     }
 }

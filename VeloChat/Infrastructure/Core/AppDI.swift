@@ -41,8 +41,9 @@ final class AppDI {
         let repository = XMTPRepository(clientManager: clientManager)
         initializeXMTPClientUseCase = DefaultInitializeXMTPClientUseCase(repository: repository)
 
+        let dbQueue = DatabaseManager.shared.dbQueue
         memberNicknameStore = MemberNicknameStore()
-        conversationNoteRepository = ConversationNoteRepository()
+        conversationNoteRepository = ConversationNoteRepository(dbQueue: dbQueue)
         let conversationManager = XMTPConversationManager(clientManager: clientManager)
         let conversationRepository = ConversationRepository(conversationManager: conversationManager, memberNicknameStore: memberNicknameStore)
         syncAllConversationsUseCase = DefaultSyncAllConversationsUseCase(repository: conversationRepository)
@@ -66,7 +67,7 @@ final class AppDI {
         updateMyNicknameUseCase = DefaultUpdateMyNicknameUseCase(repository: conversationRepository)
         dissolveGroupUseCase = DefaultDissolveGroupUseCase(repository: conversationRepository)
 
-        mutedConversationStore = MutedConversationStore()
+        mutedConversationStore = MutedConversationStore(dbQueue: dbQueue)
         let pushManager = PushNotificationManager()
         pushManager.configure(pushServerHost: Self.pushServerHost)
         pushNotificationManager = pushManager
@@ -75,8 +76,8 @@ final class AppDI {
         syncPushSubscriptionsUseCase = DefaultSyncPushSubscriptionsUseCase(repository: pushRepository)
         setConversationMutedUseCase = DefaultSetConversationMutedUseCase(repository: pushRepository)
 
-        unreadCountRepository = UnreadCountRepository()
-        hiddenConversationStore = HiddenConversationStore()
+        unreadCountRepository = UnreadCountRepository(dbQueue: dbQueue)
+        hiddenConversationStore = HiddenConversationStore(dbQueue: dbQueue)
 
         let preferencesStore = AppPreferencesStore()
         appPreferencesStore = preferencesStore
