@@ -5,6 +5,7 @@ struct HomeView: View {
     @State private var showingMe = false
     @State private var showingScan = false
     @State private var showingCreateGroup = false
+    @State private var conversationPendingDeletion: ConversationSummary?
 
     var body: some View {
         NavigationStack {
@@ -43,8 +44,8 @@ struct HomeView: View {
                     MeView()
                 }
                 .sheet(isPresented: $showingScan) {
-                    ScanView(onConversationCreated: {
-                        viewModel.didLoad()
+                    ScanView(onConversationCreated: { conversationId in
+                        Task { await viewModel.conversationCreated(conversationId) }
                     })
                 }
                 .sheet(isPresented: $showingCreateGroup) {
@@ -78,6 +79,14 @@ struct HomeView: View {
                         unreadCount: viewModel.unreadCounts[conversation.id] ?? 0
                     )
                 }
+                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                    Button(role: .destructive) {
+                        conversationPendingDeletion = conversation
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                    .tint(.red)
+                }
             }
             .refreshable {
                 await viewModel.refresh()
@@ -85,6 +94,26 @@ struct HomeView: View {
             .onAppear {
                 viewModel.refreshUnreadCounts()
                 Task { await viewModel.refresh() }
+            }
+            .confirmationDialog(
+                "Delete Conversation",
+                isPresented: Binding(
+                    get: { conversationPendingDeletion != nil },
+                    set: { if !$0 { conversationPendingDeletion = nil } }
+                ),
+                titleVisibility: .visible
+            ) {
+                Button("Delete", role: .destructive) {
+                    if let target = conversationPendingDeletion {
+                        Task { await viewModel.deleteConversation(target.id) }
+                    }
+                    conversationPendingDeletion = nil
+                }
+                Button("Cancel", role: .cancel) {
+                    conversationPendingDeletion = nil
+                }
+            } message: {
+                Text("This will permanently delete the local chat history for this conversation on this device. This cannot be undone.")
             }
         case .error(let message):
             errorState(message)

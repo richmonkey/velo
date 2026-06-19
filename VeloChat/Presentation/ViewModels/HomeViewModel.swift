@@ -20,6 +20,8 @@ final class HomeViewModel: ObservableObject {
     private let unreadCountStore: UnreadCountRepositoryProtocol
     private let noteRepository: ConversationNoteRepositoryProtocol
     private let memberNicknameStore: MemberNicknameStoring
+    private let deleteConversationUseCase: DeleteConversationUseCase
+    private let hiddenConversationStore: HiddenConversationStoring
     private var streamTask: Task<Void, Never>?
 
     init(
@@ -30,7 +32,9 @@ final class HomeViewModel: ObservableObject {
         streamAllMessages: StreamAllMessagesUseCase,
         unreadCountStore: UnreadCountRepositoryProtocol,
         noteRepository: ConversationNoteRepositoryProtocol,
-        memberNicknameStore: MemberNicknameStoring
+        memberNicknameStore: MemberNicknameStoring,
+        deleteConversation: DeleteConversationUseCase,
+        hiddenConversationStore: HiddenConversationStoring
     ) {
         self.fetchConversations = fetchConversations
         self.fetchConversation = fetchConversation
@@ -40,6 +44,8 @@ final class HomeViewModel: ObservableObject {
         self.unreadCountStore = unreadCountStore
         self.noteRepository = noteRepository
         self.memberNicknameStore = memberNicknameStore
+        self.deleteConversationUseCase = deleteConversation
+        self.hiddenConversationStore = hiddenConversationStore
     }
 
     func didLoad() {
@@ -49,6 +55,11 @@ final class HomeViewModel: ObservableObject {
     }
 
     func refresh() async {
+        await load()
+    }
+
+    func conversationCreated(_ conversationId: String) async {
+        hiddenConversationStore.unhide(conversationId: conversationId)
         await load()
     }
 
@@ -72,6 +83,9 @@ final class HomeViewModel: ObservableObject {
                         unreadCountStore.increment(conversationId: event.conversationId)
                         unreadCounts = unreadCountStore.loadAll()
                     }
+                    if hiddenConversationStore.isHidden(conversationId: event.conversationId) {
+                        hiddenConversationStore.unhide(conversationId: event.conversationId)
+                    }
                     await updateConversation(event.conversationId)
                 }
             } catch {
@@ -80,9 +94,23 @@ final class HomeViewModel: ObservableObject {
         }
     }
 
+    func deleteConversation(_ conversationId: String) async {
+        guard case .loaded(var items) = viewState,
+              let index = items.firstIndex(where: { $0.id == conversationId }) else { return }
+        items.remove(at: index)
+        viewState = items.isEmpty ? .empty : .loaded(items)
+
+        hiddenConversationStore.hide(conversationId: conversationId)
+        unreadCountStore.reset(conversationId: conversationId)
+        unreadCounts = unreadCountStore.loadAll()
+
+        try? await deleteConversationUseCase.execute(conversationId: conversationId)
+    }
+
     private func load() async {
         do {
             let rawItems = try await fetchConversations.execute()
+                .filter { !hiddenConversationStore.isHidden(conversationId: $0.id) }
             let notes = noteRepository.loadAll()
             let items = rawItems.map { conversation in
                 resolvedSummary(for: conversation, title: resolvedTitle(for: conversation, note: notes[conversation.id]))

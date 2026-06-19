@@ -18,7 +18,7 @@ struct ScanView: View {
 
     /// Called once a conversation has been created, so the presenting
     /// Home screen can refresh its list before this sheet is dismissed.
-    var onConversationCreated: () -> Void = {}
+    var onConversationCreated: (String) -> Void = { _ in }
 
     var body: some View {
         NavigationStack {
@@ -49,8 +49,8 @@ struct ScanView: View {
                 }
             }
             .onChange(of: viewModel.viewState) { newValue in
-                if case .success = newValue {
-                    onConversationCreated()
+                if case .success(let conversation) = newValue {
+                    onConversationCreated(conversation.id)
                     dismiss()
                 }
             }

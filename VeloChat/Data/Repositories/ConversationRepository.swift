@@ -11,6 +11,10 @@ final class ConversationRepository: ConversationRepositoryProtocol {
         try await conversationManager.syncAllConversations()
     }
 
+    func deleteConversation(conversationId: String) async throws {
+        try await conversationManager.deleteConversation(conversationId: conversationId)
+    }
+
     func fetchConversations() async throws -> [ConversationSummary] {
         let infos = try await conversationManager.fetchConversations()
         return infos.map(Self.map)

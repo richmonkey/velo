@@ -1,6 +1,7 @@
 protocol ConversationRepositoryProtocol {
     func syncAllConversations() async throws
     func fetchConversations() async throws -> [ConversationSummary]
+    func deleteConversation(conversationId: String) async throws
     func fetchConversation(conversationId: String) async throws -> ConversationSummary?
     func startConversation(peerInboxId: String) async throws -> ConversationSummary
     func createGroup(name: String, peerInboxIds: [String]) async throws -> ConversationSummary

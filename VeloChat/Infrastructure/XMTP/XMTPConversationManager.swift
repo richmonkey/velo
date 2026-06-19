@@ -70,6 +70,7 @@ enum ConversationManagerError: LocalizedError {
 protocol XMTPConversationManaging {
     func syncAllConversations() async throws
     func fetchConversations() async throws -> [ConversationSummaryInfo]
+    func deleteConversation(conversationId: String) async throws
     func fetchConversation(conversationId: String) async throws -> ConversationSummaryInfo?
     func startConversation(peerInboxId: String) async throws -> ConversationSummaryInfo
     func fetchMessages(conversationId: String, beforeNs: Int64?) async throws -> [ChatMessageInfo]
@@ -111,6 +112,17 @@ final class XMTPConversationManager: XMTPConversationManaging {
             summaries.append(try await summary(for: conversation, currentInboxId: client.inboxID))
         }
         return summaries
+    }
+
+    func deleteConversation(conversationId: String) async throws {
+        let client = try await clientManager.currentClient()
+        guard let conversation = try await client.conversations.findConversation(conversationId: conversationId) else {
+            throw ConversationManagerError.conversationNotFound
+        }
+        let messages = try await conversation.messages(limit: nil)
+        for message in messages {
+            try client.conversations.deleteMessageLocally(messageId: message.id)
+        }
     }
 
     func fetchConversation(conversationId: String) async throws -> ConversationSummaryInfo? {

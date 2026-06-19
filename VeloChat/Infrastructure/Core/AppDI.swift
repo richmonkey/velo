@@ -8,6 +8,7 @@ final class AppDI {
     let fetchConversationsUseCase: FetchConversationsUseCase
     let fetchConversationUseCase: FetchConversationUseCase
     let startConversationUseCase: StartConversationUseCase
+    let deleteConversationUseCase: DeleteConversationUseCase
     let fetchMessagesUseCase: FetchMessagesUseCase
     let sendMessageUseCase: SendMessageUseCase
     let sendImageMessageUseCase: SendImageMessageUseCase
@@ -25,6 +26,7 @@ final class AppDI {
     let syncPushSubscriptionsUseCase: SyncPushSubscriptionsUseCase
     let unreadCountRepository: UnreadCountRepositoryProtocol
     let conversationNoteRepository: ConversationNoteRepositoryProtocol
+    let hiddenConversationStore: HiddenConversationStoring
     let memberNicknameStore: MemberNicknameStoring
     var appPreferencesStore: AppPreferencesStoring
     let themeManager: ThemeManager
@@ -44,6 +46,7 @@ final class AppDI {
         fetchConversationsUseCase = DefaultFetchConversationsUseCase(repository: conversationRepository)
         fetchConversationUseCase = DefaultFetchConversationUseCase(repository: conversationRepository)
         startConversationUseCase = DefaultStartConversationUseCase(repository: conversationRepository)
+        deleteConversationUseCase = DefaultDeleteConversationUseCase(repository: conversationRepository)
 
         let chatRepository = ChatRepository(conversationManager: conversationManager)
         fetchMessagesUseCase = DefaultFetchMessagesUseCase(repository: chatRepository)
@@ -67,6 +70,7 @@ final class AppDI {
         syncPushSubscriptionsUseCase = DefaultSyncPushSubscriptionsUseCase(repository: pushRepository)
 
         unreadCountRepository = UnreadCountRepository()
+        hiddenConversationStore = HiddenConversationStore()
 
         let preferencesStore = AppPreferencesStore()
         appPreferencesStore = preferencesStore
@@ -92,7 +96,9 @@ final class AppDI {
             streamAllMessages: streamAllMessagesUseCase,
             unreadCountStore: unreadCountRepository,
             noteRepository: conversationNoteRepository,
-            memberNicknameStore: memberNicknameStore
+            memberNicknameStore: memberNicknameStore,
+            deleteConversation: deleteConversationUseCase,
+            hiddenConversationStore: hiddenConversationStore
         )
     }
 
