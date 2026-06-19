@@ -5,17 +5,17 @@ struct RootView: View {
     @State private var hasCompletedOnboarding = AppDI.shared.appPreferencesStore.hasCompletedOnboarding
 
     var body: some View {
-        switch loadingViewModel.viewState {
-        case .ready:
-            if hasCompletedOnboarding {
-                HomeView()
-            } else {
-                OnboardingView {
-                    hasCompletedOnboarding = true
-                }
+        if !hasCompletedOnboarding {
+            OnboardingView {
+                hasCompletedOnboarding = true
             }
-        default:
-            LoadingView(viewModel: loadingViewModel)
+        } else {
+            switch loadingViewModel.viewState {
+            case .ready:
+                HomeView()
+            default:
+                LoadingView(viewModel: loadingViewModel)
+            }
         }
     }
 }
