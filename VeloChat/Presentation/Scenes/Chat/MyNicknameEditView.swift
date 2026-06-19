@@ -13,19 +13,19 @@ struct MyNicknameEditView: View {
 
     var body: some View {
         Form {
-            Section("我的群昵称") {
-                TextField("设置你在本群的昵称", text: $viewModel.nickname)
+            Section("My Group Nickname") {
+                TextField("Set your nickname in this group", text: $viewModel.nickname)
                     .autocorrectionDisabled()
             }
         }
-        .navigationTitle("我的群昵称")
+        .navigationTitle("My Group Nickname")
         .navigationBarTitleDisplayMode(.inline)
         .task {
             await viewModel.didLoad()
         }
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
-                Button("保存") {
+                Button("Save") {
                     isSaving = true
                     Task {
                         let success = await viewModel.save()
@@ -36,8 +36,8 @@ struct MyNicknameEditView: View {
                 .disabled(isSaving || viewModel.nickname.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
         }
-        .alert("出错了", isPresented: alertBinding) {
-            Button("好", role: .cancel) {}
+        .alert("Error", isPresented: alertBinding) {
+            Button("OK", role: .cancel) {}
         } message: {
             Text(viewModel.errorMessage ?? "")
         }

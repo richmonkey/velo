@@ -25,6 +25,8 @@ final class AppDI {
     let unreadCountRepository: UnreadCountRepositoryProtocol
     let conversationNoteRepository: ConversationNoteRepositoryProtocol
     let memberNicknameStore: MemberNicknameStoring
+    var appPreferencesStore: AppPreferencesStoring
+    let themeManager: ThemeManager
 
     private init() {
         let keychain = KeychainService()
@@ -63,6 +65,10 @@ final class AppDI {
         syncPushSubscriptionsUseCase = DefaultSyncPushSubscriptionsUseCase(repository: pushRepository)
 
         unreadCountRepository = UnreadCountRepository()
+
+        let preferencesStore = AppPreferencesStore()
+        appPreferencesStore = preferencesStore
+        themeManager = ThemeManager(preferencesStore: preferencesStore)
     }
 
     @MainActor
@@ -166,5 +172,15 @@ final class AppDI {
             fetchGroupInfo: fetchGroupInfoUseCase,
             updateGroupName: updateGroupNameUseCase
         )
+    }
+
+    @MainActor
+    func makeOnboardingViewModel() -> OnboardingViewModel {
+        OnboardingViewModel(preferencesStore: appPreferencesStore)
+    }
+
+    @MainActor
+    func makeSettingsViewModel() -> SettingsViewModel {
+        SettingsViewModel(preferencesStore: appPreferencesStore)
     }
 }

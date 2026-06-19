@@ -13,19 +13,19 @@ struct GroupNameEditView: View {
 
     var body: some View {
         Form {
-            Section("群名称") {
-                TextField("群名称", text: $viewModel.name)
+            Section("Group Name") {
+                TextField("Group Name", text: $viewModel.name)
                     .autocorrectionDisabled()
             }
         }
-        .navigationTitle("群名称")
+        .navigationTitle("Group Name")
         .navigationBarTitleDisplayMode(.inline)
         .task {
             await viewModel.didLoad()
         }
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
-                Button("保存") {
+                Button("Save") {
                     isSaving = true
                     Task {
                         let success = await viewModel.save()
@@ -36,8 +36,8 @@ struct GroupNameEditView: View {
                 .disabled(isSaving || viewModel.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
         }
-        .alert("出错了", isPresented: alertBinding) {
-            Button("好", role: .cancel) {}
+        .alert("Error", isPresented: alertBinding) {
+            Button("OK", role: .cancel) {}
         } message: {
             Text(viewModel.errorMessage ?? "")
         }

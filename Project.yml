@@ -1,14 +1,16 @@
 name: VeloChat
 options:
-  bundleIdPrefix: com.velo
+  bundleIdPrefix: com.daibou007
   deploymentTarget:
-    iOS: "16.0"
+    iOS: "17.6"
   createIntermediateGroups: true
 settings:
   base:
     DEVELOPMENT_TEAM: Z53L5682S3
-    CODE_SIGN_STYLE: Automatic 
+    CODE_SIGN_STYLE: Automatic
     SWIFT_VERSION: "5.9"
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
 
 packages:
   XMTPiOS:
@@ -19,7 +21,7 @@ targets:
   VeloChat:
     type: application
     platform: iOS
-    deploymentTarget: "16.0"
+    deploymentTarget: "17.6"
     sources:
       - path: VeloChat
     dependencies:
@@ -28,10 +30,13 @@ targets:
     info:
       path: VeloChat/Info.plist
       properties:
-        UILaunchScreen: {}
-        CFBundleDisplayName: VeloChat
-        NSCameraUsageDescription: "需要使用相机扫描二维码以添加联系人"
-        NSMicrophoneUsageDescription: "需要使用麦克风录制语音消息"
+        UILaunchStoryboardName: LaunchScreen
+        CFBundleDisplayName: Velochat
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+        LSApplicationCategoryType: public.app-category.utilities
+        NSCameraUsageDescription: "Camera access is needed to scan QR codes for adding contacts"
+        NSMicrophoneUsageDescription: "Microphone access is needed to record voice messages"
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
     entitlements:
@@ -40,5 +45,5 @@ targets:
         aps-environment: development
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.velo.chat
-        TARGETED_DEVICE_FAMILY: "1,2"
+        PRODUCT_BUNDLE_IDENTIFIER: com.daibou007.velo
+        TARGETED_DEVICE_FAMILY: "1"

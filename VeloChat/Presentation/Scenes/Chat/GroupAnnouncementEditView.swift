@@ -13,20 +13,20 @@ struct GroupAnnouncementEditView: View {
 
     var body: some View {
         Form {
-            Section("群公告") {
+            Section("Group Announcement") {
                 TextEditor(text: $viewModel.announcement)
                     .frame(minHeight: 160)
                     .autocorrectionDisabled()
             }
         }
-        .navigationTitle("群公告")
+        .navigationTitle("Group Announcement")
         .navigationBarTitleDisplayMode(.inline)
         .task {
             await viewModel.didLoad()
         }
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
-                Button("保存") {
+                Button("Save") {
                     isSaving = true
                     Task {
                         let success = await viewModel.save()
@@ -37,8 +37,8 @@ struct GroupAnnouncementEditView: View {
                 .disabled(isSaving)
             }
         }
-        .alert("出错了", isPresented: alertBinding) {
-            Button("好", role: .cancel) {}
+        .alert("Error", isPresented: alertBinding) {
+            Button("OK", role: .cancel) {}
         } message: {
             Text(viewModel.errorMessage ?? "")
         }

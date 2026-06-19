@@ -6,12 +6,12 @@ struct CreateGroupNameView: View {
 
     var body: some View {
         Form {
-            Section("群组名称") {
-                TextField("请输入群组名称", text: $viewModel.groupName)
+            Section("Group Name") {
+                TextField("Enter a group name", text: $viewModel.groupName)
                     .autocorrectionDisabled()
             }
 
-            Section("已选成员（\(viewModel.selectedIds.count) 人）") {
+            Section("Selected Members (\(viewModel.selectedIds.count))") {
                 ForEach(viewModel.contacts.filter { viewModel.selectedIds.contains($0.id) }) { contact in
                     Text(contact.displayName)
                 }
@@ -25,14 +25,14 @@ struct CreateGroupNameView: View {
                 }
             }
         }
-        .navigationTitle("群组信息")
+        .navigationTitle("Group Info")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 if viewModel.isCreating {
                     ProgressView()
                 } else {
-                    Button("创建") {
+                    Button("Create") {
                         viewModel.createGroup()
                     }
                     .disabled(!viewModel.canCreate || viewModel.isCreating)

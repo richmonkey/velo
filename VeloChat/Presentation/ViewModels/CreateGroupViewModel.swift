@@ -2,8 +2,8 @@ import Foundation
 
 struct DMContactItem: Identifiable, Hashable {
     let id: String           // conversation id
-    let peerInboxId: String  // 实际 inbox id，用于创建群组
-    let displayName: String  // 备注名 or 缩写 id
+    let peerInboxId: String  // the actual inbox id, used to create the group
+    let displayName: String  // note name, or abbreviated id
 }
 
 @MainActor

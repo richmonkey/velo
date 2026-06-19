@@ -22,29 +22,30 @@ struct ScanView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
+            ZStack {
+                Color.black.ignoresSafeArea()
+
                 QRScannerRepresentable { code in
                     viewModel.submit(peerInboxId: code)
                 }
-                .frame(height: 320)
-                .overlay {
-                    if case .submitting = viewModel.viewState {
-                        ProgressView()
-                            .tint(.white)
-                    }
-                }
+                .ignoresSafeArea()
 
-                if case .error(let message) = viewModel.viewState {
-                    Text(message)
-                        .foregroundStyle(.red)
-                        .font(.caption)
-                        .padding()
+                viewfinder
+
+                VStack {
+                    Spacer()
+                    statusMessage
+                    Spacer().frame(height: 72)
                 }
             }
-            .navigationTitle("添加联系人")
+            .navigationTitle("Add Contact")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarColorScheme(.dark, for: .navigationBar)
+            .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
+                    Button("Cancel") { dismiss() }
+                        .foregroundStyle(.white)
                 }
             }
             .onChange(of: viewModel.viewState) { newValue in
@@ -53,6 +54,47 @@ struct ScanView: View {
                     dismiss()
                 }
             }
+        }
+    }
+
+    private var viewfinder: some View {
+        GeometryReader { proxy in
+            let side = min(proxy.size.width, proxy.size.height) * 0.65
+            RoundedRectangle(cornerRadius: 28)
+                .strokeBorder(Color.accentHighlight, lineWidth: 3)
+                .frame(width: side, height: side)
+                .overlay {
+                    if case .submitting = viewModel.viewState {
+                        ZStack {
+                            Color.black.opacity(0.55)
+                            ProgressView()
+                                .tint(.white)
+                        }
+                        .frame(width: side, height: side)
+                        .clipShape(RoundedRectangle(cornerRadius: 28))
+                    }
+                }
+                .position(x: proxy.size.width / 2, y: proxy.size.height * 0.4)
+        }
+    }
+
+    @ViewBuilder
+    private var statusMessage: some View {
+        if case .error(let message) = viewModel.viewState {
+            Text(message)
+                .font(.subheadline)
+                .foregroundStyle(.white)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 12))
+                .padding(.horizontal, 32)
+        } else {
+            Text("Point your camera at a Velochat QR code")
+                .font(.subheadline)
+                .foregroundStyle(.white.opacity(0.85))
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
         }
     }
 }

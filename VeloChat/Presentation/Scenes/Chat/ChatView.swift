@@ -148,56 +148,79 @@ struct ChatView: View {
         if audioRecorder.isRecording {
             recordingBar
         } else {
-            HStack {
+            HStack(spacing: 10) {
                 Menu {
                     Button {
                         showPhotoPicker = true
                     } label: {
-                        Label("从相册选择", systemImage: "photo")
+                        Label("Choose from Library", systemImage: "photo")
                     }
                     if isCameraAvailable {
                         Button {
                             showCamera = true
                         } label: {
-                            Label("拍照", systemImage: "camera")
+                            Label("Take Photo", systemImage: "camera")
                         }
                     }
                 } label: {
-                    Image(systemName: "plus.circle")
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 30))
+                        .foregroundStyle(Color.brandPrimary)
                 }
+                .buttonStyle(.pressable)
                 .disabled(viewModel.isSending)
-                TextField("输入消息", text: $draft)
-                    .textFieldStyle(.roundedBorder)
+
+                TextField("Message", text: $draft, axis: .vertical)
+                    .font(.system(size: 16))
+                    .lineLimit(1...4)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(Color.bubbleOther, in: RoundedRectangle(cornerRadius: 20))
                     .disabled(viewModel.isSending)
                     .focused($isDraftFocused)
                     .onSubmit(sendDraft)
+
                 if canSendDraft {
-                    Button("发送", action: sendDraft)
+                    Button(action: sendDraft) {
+                        Image(systemName: "paperplane.circle.fill")
+                            .font(.system(size: 30))
+                            .foregroundStyle(Color.brandPrimary)
+                    }
+                    .buttonStyle(.pressable)
                 } else {
                     Button {
                         startRecording()
                     } label: {
-                        Image(systemName: "mic.circle")
+                        Image(systemName: "mic.circle.fill")
+                            .font(.system(size: 30))
+                            .foregroundStyle(Color.brandPrimary)
                     }
+                    .buttonStyle(.pressable)
                     .disabled(viewModel.isSending)
                 }
             }
-            .padding()
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
         }
     }
 
     private var recordingBar: some View {
         HStack {
-            Button("取消") {
+            Button("Cancel") {
                 audioRecorder.cancelRecording()
             }
+            .buttonStyle(.pressable)
+            .foregroundStyle(Color.brandPrimary)
             Spacer()
-            Text("录音中 \(formattedDuration(audioRecorder.elapsed))")
-                .foregroundStyle(.secondary)
+            Text("Recording \(formattedDuration(audioRecorder.elapsed))")
+                .foregroundStyle(Color.textSecondary)
             Spacer()
-            Button("完成") {
+            Button("Done") {
                 finishRecording()
             }
+            .buttonStyle(.pressable)
+            .fontWeight(.semibold)
+            .foregroundStyle(Color.brandPrimary)
         }
         .padding()
     }
@@ -301,14 +324,39 @@ private struct FullScreenImageView: View {
     }
 
     var body: some View {
-        ZStack(alignment: .bottom) {
+        ZStack {
             Color.black.ignoresSafeArea()
+
             if let originalImage {
                 Image(uiImage: originalImage)
                     .resizable()
                     .scaledToFit()
                     .scaleEffect(scale)
                     .offset(offset)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.largeTitle)
+                    .foregroundStyle(.white.opacity(0.7))
+            }
+
+            VStack {
+                HStack {
+                    Spacer()
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .padding(10)
+                            .background(.black.opacity(0.5), in: Circle())
+                    }
+                    .buttonStyle(.pressable)
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                Spacer()
             }
         }
         .contentShape(Rectangle())
@@ -327,13 +375,13 @@ private struct MessageBubble: View {
 
     var body: some View {
         if message.isSystemNotice {
-            let actorName = message.isFromMe ? "我" : nameResolver(message.senderInboxId)
+            let actorName = message.isFromMe ? "Me" : nameResolver(message.senderInboxId)
             Text(message.text.replacingOccurrences(of: "{{actor}}", with: actorName))
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.textSecondary)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
-                .background(Color(.systemGray6))
+                .background(Color.systemPillBackground)
                 .clipShape(Capsule())
                 .frame(maxWidth: .infinity, alignment: .center)
         } else {
@@ -358,8 +406,8 @@ private struct MessageBubble: View {
                         Text(message.text)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
-                            .background(message.isFromMe ? Color.accentColor : Color(.systemGray5))
-                            .foregroundStyle(message.isFromMe ? .white : .primary)
+                            .background(message.isFromMe ? Color.bubbleSelf : Color.bubbleOther)
+                            .foregroundStyle(message.isFromMe ? .white : Color.textPrimary)
                             .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
                     Text(message.sentAt.formatted(date: .omitted, time: .shortened))
@@ -422,8 +470,8 @@ private struct VoiceMessageBubble: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .background(isFromMe ? Color.accentColor : Color(.systemGray5))
-            .foregroundStyle(isFromMe ? .white : .primary)
+            .background(isFromMe ? Color.bubbleSelf : Color.bubbleOther)
+            .foregroundStyle(isFromMe ? .white : Color.textPrimary)
             .clipShape(RoundedRectangle(cornerRadius: 14))
         }
         .buttonStyle(.plain)

@@ -152,7 +152,7 @@ final class HomeViewModel: ObservableObject {
             return conversation.lastMessagePreview
         }
         let actor = conversation.lastMessageIsFromMe
-            ? "我"
+            ? "Me"
             : displayName(forInboxId: conversation.lastMessageSenderInboxId ?? "", conversationId: conversation.id)
         return preview.replacingOccurrences(of: "{{actor}}", with: actor)
     }

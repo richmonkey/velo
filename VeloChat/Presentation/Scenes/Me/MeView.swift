@@ -3,17 +3,25 @@ import UIKit
 
 struct MeView: View {
     @StateObject private var viewModel = AppDI.shared.makeMeViewModel()
+    @ObservedObject private var themeManager = AppDI.shared.themeManager
     @State private var showingScan = false
     @State private var shareItem: ShareImageItem?
 
     var body: some View {
         NavigationStack {
             content
-                .navigationTitle("我的")
+                .navigationTitle("Me")
                 .task {
                     viewModel.didLoad()
                 }
                 .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        NavigationLink {
+                            SettingsView()
+                        } label: {
+                            Image(systemName: "gearshape")
+                        }
+                    }
                     ToolbarItem(placement: .topBarTrailing) {
                         if case .loaded(let identity) = viewModel.viewState {
                             Button {
@@ -34,6 +42,7 @@ struct MeView: View {
                         .presentationDetents([.medium, .large])
                 }
         }
+        .preferredColorScheme(themeManager.colorScheme)
     }
 
     @ViewBuilder
@@ -58,7 +67,7 @@ struct MeView: View {
 
     private func identityView(_ identity: XMTPIdentity) -> some View {
         VStack(spacing: 20) {
-            Text("让对方扫描这个二维码即可添加你")
+            Text("Let others scan this QR code to add you")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
 
@@ -80,10 +89,15 @@ struct MeView: View {
             Button {
                 showingScan = true
             } label: {
-                Label("扫描二维码", systemImage: "qrcode.viewfinder")
+                Label("Scan QR Code", systemImage: "qrcode.viewfinder")
                     .frame(maxWidth: .infinity)
+                    .padding(.vertical, 4)
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(.pressable)
+            .font(.system(size: 17, weight: .semibold))
+            .foregroundStyle(.white)
+            .padding(.vertical, 10)
+            .background(Color.brandPrimary, in: RoundedRectangle(cornerRadius: 14))
             .padding(.horizontal)
             .padding(.bottom)
         }
