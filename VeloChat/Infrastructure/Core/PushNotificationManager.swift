@@ -6,6 +6,7 @@ protocol PushNotificationManaging {
     func requestPermissionAndRegister() async throws -> Bool
     func registerDeviceToken(_ token: Data) async throws
     func subscribe(topics: [String]) async throws
+    func unsubscribe(topics: [String]) async throws
 }
 
 /// Thin wrapper around XMTPiOS's bundled `XMTPPush` helper, which already speaks
@@ -37,5 +38,10 @@ actor PushNotificationManager: PushNotificationManaging {
         guard !newTopics.isEmpty else { return }
         try await XMTPPush.shared.subscribe(topics: newTopics)
         subscribedTopics.formUnion(newTopics)
+    }
+
+    func unsubscribe(topics: [String]) async throws {
+        try await XMTPPush.shared.unsubscribe(topics: topics)
+        subscribedTopics.subtract(topics)
     }
 }

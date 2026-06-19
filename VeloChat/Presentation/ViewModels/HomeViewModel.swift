@@ -22,6 +22,7 @@ final class HomeViewModel: ObservableObject {
     private let memberNicknameStore: MemberNicknameStoring
     private let deleteConversationUseCase: DeleteConversationUseCase
     private let hiddenConversationStore: HiddenConversationStoring
+    private let mutedConversationStore: MutedConversationStoring
     private var streamTask: Task<Void, Never>?
 
     init(
@@ -34,7 +35,8 @@ final class HomeViewModel: ObservableObject {
         noteRepository: ConversationNoteRepositoryProtocol,
         memberNicknameStore: MemberNicknameStoring,
         deleteConversation: DeleteConversationUseCase,
-        hiddenConversationStore: HiddenConversationStoring
+        hiddenConversationStore: HiddenConversationStoring,
+        mutedConversationStore: MutedConversationStoring
     ) {
         self.fetchConversations = fetchConversations
         self.fetchConversation = fetchConversation
@@ -46,6 +48,11 @@ final class HomeViewModel: ObservableObject {
         self.memberNicknameStore = memberNicknameStore
         self.deleteConversationUseCase = deleteConversation
         self.hiddenConversationStore = hiddenConversationStore
+        self.mutedConversationStore = mutedConversationStore
+    }
+
+    func isMuted(conversationId: String) -> Bool {
+        mutedConversationStore.isMuted(conversationId: conversationId)
     }
 
     func didLoad() {

@@ -52,6 +52,13 @@ struct GroupSettingsView: View {
                     myNicknameLabel.foregroundStyle(.secondary)
                 }
             }
+            Section {
+                Toggle("Mute Notifications", isOn: Binding(
+                    get: { viewModel.isMuted },
+                    set: { viewModel.setMuted($0) }
+                ))
+                .disabled(viewModel.disabledReason != nil)
+            }
             Section("Members") {
                 ForEach(viewModel.members) { member in
                     HStack {

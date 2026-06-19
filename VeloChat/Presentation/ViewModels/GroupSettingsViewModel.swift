@@ -10,6 +10,7 @@ final class GroupSettingsViewModel: ObservableObject {
     @Published private(set) var isLoading = false
     @Published private(set) var isCreator = false
     @Published private(set) var disabledReason: String?
+    @Published private(set) var isMuted = false
     @Published var errorMessage: String?
 
     var myNickname: String {
@@ -20,19 +21,31 @@ final class GroupSettingsViewModel: ObservableObject {
     private let fetchGroupMembers: FetchGroupMembersUseCase
     private let noteRepository: ConversationNoteRepositoryProtocol
     private let dissolveGroupUseCase: DissolveGroupUseCase
+    private let mutedConversationStore: MutedConversationStoring
+    private let setConversationMutedUseCase: SetConversationMutedUseCase
 
     init(
         conversationId: String,
         fetchGroupInfo: FetchGroupInfoUseCase,
         fetchGroupMembers: FetchGroupMembersUseCase,
         noteRepository: ConversationNoteRepositoryProtocol,
-        dissolveGroup: DissolveGroupUseCase
+        dissolveGroup: DissolveGroupUseCase,
+        mutedConversationStore: MutedConversationStoring,
+        setConversationMuted: SetConversationMutedUseCase
     ) {
         self.conversationId = conversationId
         self.fetchGroupInfo = fetchGroupInfo
         self.fetchGroupMembers = fetchGroupMembers
         self.noteRepository = noteRepository
         self.dissolveGroupUseCase = dissolveGroup
+        self.mutedConversationStore = mutedConversationStore
+        self.setConversationMutedUseCase = setConversationMuted
+        self.isMuted = mutedConversationStore.isMuted(conversationId: conversationId)
+    }
+
+    func setMuted(_ muted: Bool) {
+        isMuted = muted
+        Task { try? await setConversationMutedUseCase.execute(conversationId: conversationId, isMuted: muted) }
     }
 
     func displayName(for member: GroupMember) -> String {

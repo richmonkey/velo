@@ -76,7 +76,8 @@ struct HomeView: View {
                 NavigationLink(value: conversation) {
                     ConversationRow(
                         conversation: conversation,
-                        unreadCount: viewModel.unreadCounts[conversation.id] ?? 0
+                        unreadCount: viewModel.unreadCounts[conversation.id] ?? 0,
+                        isMuted: viewModel.isMuted(conversationId: conversation.id)
                     )
                 }
                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
@@ -151,13 +152,21 @@ struct HomeView: View {
 private struct ConversationRow: View {
     let conversation: ConversationSummary
     let unreadCount: Int
+    let isMuted: Bool
 
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
-                Text(conversation.title)
-                    .font(.headline)
-                    .lineLimit(1)
+                HStack(spacing: 4) {
+                    Text(conversation.title)
+                        .font(.headline)
+                        .lineLimit(1)
+                    if isMuted {
+                        Image(systemName: "bell.slash.fill")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
                 if let preview = conversation.lastMessagePreview {
                     Text(preview)
                         .font(.subheadline)

@@ -25,9 +25,11 @@ final class AppDI {
     let pushNotificationManager: PushNotificationManaging
     let setupPushNotificationsUseCase: SetupPushNotificationsUseCase
     let syncPushSubscriptionsUseCase: SyncPushSubscriptionsUseCase
+    let setConversationMutedUseCase: SetConversationMutedUseCase
     let unreadCountRepository: UnreadCountRepositoryProtocol
     let conversationNoteRepository: ConversationNoteRepositoryProtocol
     let hiddenConversationStore: HiddenConversationStoring
+    let mutedConversationStore: MutedConversationStoring
     let memberNicknameStore: MemberNicknameStoring
     var appPreferencesStore: AppPreferencesStoring
     let themeManager: ThemeManager
@@ -64,12 +66,14 @@ final class AppDI {
         updateMyNicknameUseCase = DefaultUpdateMyNicknameUseCase(repository: conversationRepository)
         dissolveGroupUseCase = DefaultDissolveGroupUseCase(repository: conversationRepository)
 
+        mutedConversationStore = MutedConversationStore()
         let pushManager = PushNotificationManager()
         pushManager.configure(pushServerHost: Self.pushServerHost)
         pushNotificationManager = pushManager
-        let pushRepository = PushNotificationRepository(pushManager: pushManager, conversationManager: conversationManager)
+        let pushRepository = PushNotificationRepository(pushManager: pushManager, conversationManager: conversationManager, mutedConversationStore: mutedConversationStore)
         setupPushNotificationsUseCase = DefaultSetupPushNotificationsUseCase(repository: pushRepository)
         syncPushSubscriptionsUseCase = DefaultSyncPushSubscriptionsUseCase(repository: pushRepository)
+        setConversationMutedUseCase = DefaultSetConversationMutedUseCase(repository: pushRepository)
 
         unreadCountRepository = UnreadCountRepository()
         hiddenConversationStore = HiddenConversationStore()
@@ -100,7 +104,8 @@ final class AppDI {
             noteRepository: conversationNoteRepository,
             memberNicknameStore: memberNicknameStore,
             deleteConversation: deleteConversationUseCase,
-            hiddenConversationStore: hiddenConversationStore
+            hiddenConversationStore: hiddenConversationStore,
+            mutedConversationStore: mutedConversationStore
         )
     }
 
@@ -147,7 +152,9 @@ final class AppDI {
         ConversationSettingsViewModel(
             conversationId: conversationId,
             peerInboxId: peerInboxId,
-            noteRepository: conversationNoteRepository
+            noteRepository: conversationNoteRepository,
+            mutedConversationStore: mutedConversationStore,
+            setConversationMuted: setConversationMutedUseCase
         )
     }
 
@@ -158,7 +165,9 @@ final class AppDI {
             fetchGroupInfo: fetchGroupInfoUseCase,
             fetchGroupMembers: fetchGroupMembersUseCase,
             noteRepository: conversationNoteRepository,
-            dissolveGroup: dissolveGroupUseCase
+            dissolveGroup: dissolveGroupUseCase,
+            mutedConversationStore: mutedConversationStore,
+            setConversationMuted: setConversationMutedUseCase
         )
     }
 
