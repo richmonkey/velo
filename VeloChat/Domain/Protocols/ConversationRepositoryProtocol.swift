@@ -10,4 +10,5 @@ protocol ConversationRepositoryProtocol {
     func updateGroupName(conversationId: String, name: String) async throws
     func fetchGroupMembers(conversationId: String) async throws -> [GroupMember]
     func updateMyNickname(conversationId: String, nickname: String) async throws
+    func dissolveGroup(conversationId: String) async throws
 }

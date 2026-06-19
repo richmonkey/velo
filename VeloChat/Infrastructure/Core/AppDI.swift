@@ -21,6 +21,7 @@ final class AppDI {
     let updateGroupNameUseCase: UpdateGroupNameUseCase
     let fetchGroupMembersUseCase: FetchGroupMembersUseCase
     let updateMyNicknameUseCase: UpdateMyNicknameUseCase
+    let dissolveGroupUseCase: DissolveGroupUseCase
     let pushNotificationManager: PushNotificationManaging
     let setupPushNotificationsUseCase: SetupPushNotificationsUseCase
     let syncPushSubscriptionsUseCase: SyncPushSubscriptionsUseCase
@@ -61,6 +62,7 @@ final class AppDI {
         updateGroupNameUseCase = DefaultUpdateGroupNameUseCase(repository: conversationRepository)
         fetchGroupMembersUseCase = DefaultFetchGroupMembersUseCase(repository: conversationRepository)
         updateMyNicknameUseCase = DefaultUpdateMyNicknameUseCase(repository: conversationRepository)
+        dissolveGroupUseCase = DefaultDissolveGroupUseCase(repository: conversationRepository)
 
         let pushManager = PushNotificationManager()
         pushManager.configure(pushServerHost: Self.pushServerHost)
@@ -155,7 +157,8 @@ final class AppDI {
             conversationId: conversationId,
             fetchGroupInfo: fetchGroupInfoUseCase,
             fetchGroupMembers: fetchGroupMembersUseCase,
-            noteRepository: conversationNoteRepository
+            noteRepository: conversationNoteRepository,
+            dissolveGroup: dissolveGroupUseCase
         )
     }
 

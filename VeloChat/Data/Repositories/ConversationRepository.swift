@@ -39,7 +39,11 @@ final class ConversationRepository: ConversationRepositoryProtocol {
 
     func fetchGroupInfo(conversationId: String) async throws -> GroupInfo {
         let info = try await conversationManager.fetchGroupInfo(conversationId: conversationId)
-        return GroupInfo(name: info.name, announcement: info.announcement)
+        return GroupInfo(name: info.name, announcement: info.announcement, isCreator: info.isCreator, isActive: info.isActive)
+    }
+
+    func dissolveGroup(conversationId: String) async throws {
+        try await conversationManager.dissolveGroup(conversationId: conversationId)
     }
 
     func updateGroupAnnouncement(conversationId: String, announcement: String) async throws {

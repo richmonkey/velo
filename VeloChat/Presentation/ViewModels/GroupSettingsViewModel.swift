@@ -8,6 +8,8 @@ final class GroupSettingsViewModel: ObservableObject {
     @Published private(set) var announcement: String = ""
     @Published private(set) var members: [GroupMember] = []
     @Published private(set) var isLoading = false
+    @Published private(set) var isCreator = false
+    @Published private(set) var disabledReason: String?
     @Published var errorMessage: String?
 
     var myNickname: String {
@@ -17,17 +19,20 @@ final class GroupSettingsViewModel: ObservableObject {
     private let fetchGroupInfo: FetchGroupInfoUseCase
     private let fetchGroupMembers: FetchGroupMembersUseCase
     private let noteRepository: ConversationNoteRepositoryProtocol
+    private let dissolveGroupUseCase: DissolveGroupUseCase
 
     init(
         conversationId: String,
         fetchGroupInfo: FetchGroupInfoUseCase,
         fetchGroupMembers: FetchGroupMembersUseCase,
-        noteRepository: ConversationNoteRepositoryProtocol
+        noteRepository: ConversationNoteRepositoryProtocol,
+        dissolveGroup: DissolveGroupUseCase
     ) {
         self.conversationId = conversationId
         self.fetchGroupInfo = fetchGroupInfo
         self.fetchGroupMembers = fetchGroupMembers
         self.noteRepository = noteRepository
+        self.dissolveGroupUseCase = dissolveGroup
     }
 
     func displayName(for member: GroupMember) -> String {
@@ -45,9 +50,32 @@ final class GroupSettingsViewModel: ObservableObject {
             let info = try await fetchGroupInfo.execute(conversationId: conversationId)
             groupName = info.name
             announcement = info.announcement
+            isCreator = info.isCreator
             members = try await fetchGroupMembers.execute(conversationId: conversationId)
+            updateDisabledReason(isActive: info.isActive)
         } catch {
             errorMessage = error.localizedDescription
+        }
+    }
+
+    private func updateDisabledReason(isActive: Bool) {
+        let hasOtherMembers = members.contains { !$0.isMe }
+        if !isActive {
+            disabledReason = "You are no longer a member of this group."
+        } else if !hasOtherMembers {
+            disabledReason = "This group has been dissolved."
+        } else {
+            disabledReason = nil
+        }
+    }
+
+    func dissolveGroup() async -> Bool {
+        do {
+            try await dissolveGroupUseCase.execute(conversationId: conversationId)
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
         }
     }
 }

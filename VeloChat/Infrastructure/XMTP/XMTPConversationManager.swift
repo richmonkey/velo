@@ -21,6 +21,8 @@ struct ConversationSummaryInfo {
 struct GroupInfoData {
     let name: String
     let announcement: String
+    let isCreator: Bool
+    let isActive: Bool
 }
 
 struct GroupMemberInfo {
@@ -56,6 +58,7 @@ struct ChatMessageInfo {
 enum ConversationManagerError: LocalizedError {
     case conversationNotFound
     case notAGroup
+    case notGroupCreator
 
     var errorDescription: String? {
         switch self {
@@ -63,6 +66,8 @@ enum ConversationManagerError: LocalizedError {
             return "Conversation not found"
         case .notAGroup:
             return "This conversation is not a group"
+        case .notGroupCreator:
+            return "Only the group creator can dissolve this group"
         }
     }
 }
@@ -86,6 +91,7 @@ protocol XMTPConversationManaging {
     func updateGroupName(conversationId: String, name: String) async throws
     func fetchGroupMembers(conversationId: String) async throws -> [GroupMemberInfo]
     func updateMyNickname(conversationId: String, nickname: String) async throws -> NicknameUpdateInfo
+    func dissolveGroup(conversationId: String) async throws
 }
 
 final class XMTPConversationManager: XMTPConversationManaging {
@@ -286,8 +292,28 @@ final class XMTPConversationManager: XMTPConversationManaging {
         }
         return GroupInfoData(
             name: (try? group.name()) ?? "Group Chat",
-            announcement: (try? group.description()) ?? ""
+            announcement: (try? group.description()) ?? "",
+            isCreator: (try? await group.isCreator()) ?? false,
+            isActive: (try? group.isActive()) ?? true
         )
+    }
+
+    func dissolveGroup(conversationId: String) async throws {
+        let client = try await clientManager.currentClient()
+        guard let conversation = try await client.conversations.findConversation(conversationId: conversationId) else {
+            throw ConversationManagerError.conversationNotFound
+        }
+        guard case .group(let group) = conversation else {
+            throw ConversationManagerError.notAGroup
+        }
+        guard try await group.isCreator() else {
+            throw ConversationManagerError.notGroupCreator
+        }
+        let myInboxId = client.inboxID
+        let otherInboxIds = try await group.members.map(\.inboxId).filter { $0 != myInboxId }
+        if !otherInboxIds.isEmpty {
+            try await group.removeMembers(inboxIds: otherInboxIds)
+        }
     }
 
     func updateGroupName(conversationId: String, name: String) async throws {

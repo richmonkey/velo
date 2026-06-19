@@ -145,7 +145,14 @@ struct ChatView: View {
 
     @ViewBuilder
     private var inputBar: some View {
-        if audioRecorder.isRecording {
+        if let reason = viewModel.disabledReason {
+            Text(reason)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(Color.bubbleOther)
+        } else if audioRecorder.isRecording {
             recordingBar
         } else {
             HStack(spacing: 10) {

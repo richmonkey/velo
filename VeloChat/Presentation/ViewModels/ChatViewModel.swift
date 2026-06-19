@@ -11,6 +11,10 @@ final class ChatViewModel: ObservableObject {
     @Published private(set) var viewState: ChatViewState = .loading
     @Published private(set) var isSending = false
     @Published private(set) var hasMoreHistory = true
+    @Published private(set) var canSendMessages = true
+    @Published private(set) var disabledReason: String?
+    private var groupIsActive = true
+    private var groupHasOtherMembers = true
     private var isLoadingMore = false
 
     let conversationId: String
@@ -77,9 +81,22 @@ final class ChatViewModel: ObservableObject {
         do {
             let info = try await fetchGroupInfo.execute(conversationId: conversationId)
             conversationTitle = info.name
+            groupIsActive = info.isActive
+            updateSendability()
         } catch {
-            // Best-effort: keep showing whatever title we already have.
+            // Best-effort: keep showing whatever title/state we already have.
         }
+    }
+
+    private func updateSendability() {
+        if !groupIsActive {
+            disabledReason = "You are no longer a member of this group."
+        } else if !groupHasOtherMembers {
+            disabledReason = "This group has been dissolved."
+        } else {
+            disabledReason = nil
+        }
+        canSendMessages = disabledReason == nil
     }
 
     func didLoad() {
@@ -189,6 +206,8 @@ final class ChatViewModel: ObservableObject {
                     nicknameByInboxId[member.id] = nickname
                 }
             }
+            groupHasOtherMembers = members.contains { !$0.isMe }
+            updateSendability()
         } catch {
             // Best-effort: sender labels just fall back to abbreviated inbox ids.
         }
@@ -217,5 +236,12 @@ final class ChatViewModel: ObservableObject {
         guard !messages.contains(where: { $0.id == message.id }) else { return }
         messages.append(message)
         viewState = .loaded(messages)
+
+        if kind == .group, message.isSystemNotice {
+            Task {
+                await refreshGroupTitle()
+                await loadMembers()
+            }
+        }
     }
 }
