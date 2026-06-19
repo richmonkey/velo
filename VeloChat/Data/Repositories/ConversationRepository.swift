@@ -7,6 +7,10 @@ final class ConversationRepository: ConversationRepositoryProtocol {
         self.memberNicknameStore = memberNicknameStore
     }
 
+    func syncAllConversations() async throws {
+        try await conversationManager.syncAllConversations()
+    }
+
     func fetchConversations() async throws -> [ConversationSummary] {
         let infos = try await conversationManager.fetchConversations()
         return infos.map(Self.map)

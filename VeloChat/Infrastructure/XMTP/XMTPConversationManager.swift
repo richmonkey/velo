@@ -68,6 +68,7 @@ enum ConversationManagerError: LocalizedError {
 }
 
 protocol XMTPConversationManaging {
+    func syncAllConversations() async throws
     func fetchConversations() async throws -> [ConversationSummaryInfo]
     func fetchConversation(conversationId: String) async throws -> ConversationSummaryInfo?
     func startConversation(peerInboxId: String) async throws -> ConversationSummaryInfo
@@ -93,15 +94,19 @@ final class XMTPConversationManager: XMTPConversationManaging {
         self.clientManager = clientManager
     }
 
-    func fetchConversations() async throws -> [ConversationSummaryInfo] {
+    func syncAllConversations() async throws {
         let client = try await clientManager.currentClient()
         _ = try await client.conversations.syncAllConversations()
+    }
+
+    func fetchConversations() async throws -> [ConversationSummaryInfo] {
+        let client = try await clientManager.currentClient()
 
         let conversations = try await client.conversations.list(
             consentStates: [.allowed, .unknown]
         )
 
-        var summaries: [ConversationSummaryInfo] = []
+        var summaries: [ConversationSummaryInfo] = [ ]
         for conversation in conversations {
             summaries.append(try await summary(for: conversation, currentInboxId: client.inboxID))
         }
@@ -127,7 +132,6 @@ final class XMTPConversationManager: XMTPConversationManaging {
         guard let conversation = try await client.conversations.findConversation(conversationId: conversationId) else {
             throw ConversationManagerError.conversationNotFound
         }
-        try await conversation.sync()
         let isGroup = Self.isGroup(conversation)
         let messages: [DecodedMessage]
         if let beforeNs {

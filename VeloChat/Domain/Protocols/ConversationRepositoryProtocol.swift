@@ -1,4 +1,5 @@
 protocol ConversationRepositoryProtocol {
+    func syncAllConversations() async throws
     func fetchConversations() async throws -> [ConversationSummary]
     func fetchConversation(conversationId: String) async throws -> ConversationSummary?
     func startConversation(peerInboxId: String) async throws -> ConversationSummary

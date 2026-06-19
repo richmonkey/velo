@@ -4,6 +4,7 @@ final class AppDI {
     private static let pushServerHost = "http://192.168.1.198:8080"
 
     let initializeXMTPClientUseCase: InitializeXMTPClientUseCase
+    let syncAllConversationsUseCase: SyncAllConversationsUseCase
     let fetchConversationsUseCase: FetchConversationsUseCase
     let fetchConversationUseCase: FetchConversationUseCase
     let startConversationUseCase: StartConversationUseCase
@@ -39,6 +40,7 @@ final class AppDI {
         conversationNoteRepository = ConversationNoteRepository()
         let conversationManager = XMTPConversationManager(clientManager: clientManager)
         let conversationRepository = ConversationRepository(conversationManager: conversationManager, memberNicknameStore: memberNicknameStore)
+        syncAllConversationsUseCase = DefaultSyncAllConversationsUseCase(repository: conversationRepository)
         fetchConversationsUseCase = DefaultFetchConversationsUseCase(repository: conversationRepository)
         fetchConversationUseCase = DefaultFetchConversationUseCase(repository: conversationRepository)
         startConversationUseCase = DefaultStartConversationUseCase(repository: conversationRepository)
@@ -73,7 +75,11 @@ final class AppDI {
 
     @MainActor
     func makeLoadingViewModel() -> LoadingViewModel {
-        LoadingViewModel(initializeXMTPClient: initializeXMTPClientUseCase)
+        LoadingViewModel(
+            initializeXMTPClient: initializeXMTPClientUseCase,
+            syncAllConversations: syncAllConversationsUseCase,
+            preferencesStore: appPreferencesStore
+        )
     }
 
     @MainActor
